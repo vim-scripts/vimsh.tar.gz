@@ -6,8 +6,8 @@
 # author:   brian m sturk   bsturk@nh.ultranet.com,
 #                           http://www.nh.ultranet.com/~bsturk
 # created:  12/02/01
-# last_mod: 04/11/02
-# version:  0.13
+# last_mod: 05/09/02
+# version:  0.14
 #
 # usage, etc:   see vimsh.readme
 # history:      see ChangeLog
@@ -313,10 +313,12 @@ class vimsh:
     def read( self, _buffer ):
 
         num_iterations      = 0      ##  counter for periodic redraw
-        iters_before_redraw = 10
 
         if sys.platform == 'win32':
             iters_before_redraw = 1 
+
+        else:
+            iters_before_redraw = 10
 
         while 1:
             if self.using_pty:
@@ -344,7 +346,7 @@ class vimsh:
 
                     r = []          ##  Sentinel, end of data to read
                     break
-
+                    
                 num_iterations += 1
 
                 lines = self.process_read( lines )
@@ -358,8 +360,10 @@ class vimsh:
                     vim.command( 'call VimShRedraw()' )
 
             if r == []:
+
                 dbg_print( 'read: end of data to self.read()' )
                 self.end_read( _buffer )
+
                 break
 
 ################################################################################
@@ -466,6 +470,27 @@ class vimsh:
         ##  Tuck away location, all data read is in buffer
 
         self.prompt_line, self.prompt_cursor = self.get_vim_cursor_pos( )
+
+################################################################################
+
+    def check_still_running( self ):
+
+        cur_procs = procs_in_pty( self.cur_pty )
+
+        dbg_print( 'check_still_running: last command was ' + self.last_cmd_executed )
+
+        last_cmd = self.last_cmd_executed.strip()
+
+        for key in cur_procs.keys():
+
+            proc = cur_procs[ key ].strip()
+
+            if last_cmd == proc:
+                dbg_print( 'check_still_running: Have match' )
+
+                return 1
+
+        return 0
 
 ################################################################################
 
@@ -576,7 +601,7 @@ class vimsh:
         while not timeout_ok:
 
             try:
-                vim.command( 'let timeout = input( "New timeout ( in seconds, i.e. 1.2 ) " )' )
+                vim.command( 'let timeout = input( "Enter new timeout in seconds (i.e. 0.1), currently set to ' + str( self.delay ) + ' :  " )' )
 
             except KeyboardInterrupt:
                 return
@@ -587,12 +612,20 @@ class vimsh:
                 timeout_ok = 1
 
             else:
-                timeout = float( timeout )
+
+                try:
+                    timeout = float( timeout )
+
+                except:
+                    continue
             
                 if timeout >= 0.1:
                     print '      --->   New timeout is ' + str( timeout ) + ' seconds'
                     self.delay = timeout
                     timeout_ok = 1
+
+        vim.command( "normal G$" )
+        vim.command( "startinsert" )
 
 ################################################################################
 
@@ -678,6 +711,16 @@ class vimsh:
             pass
 
 ################################################################################
+
+    def current_mode( self ):
+
+        vim.command( 'let cur_mode = mode()' )
+
+        cur_mode = vim.eval( "cur_mode" )
+
+        return cur_mode
+
+################################################################################
         
     def thread_worker( self ):
 
@@ -747,9 +790,20 @@ def procs_in_pty( pty_num ):
     regex = r'\bpts/' + `pty_num` + r'\b'
 
     for line in output:
+
         if re.search( regex, line ):
+
             entries = string.split( line )
-            procs_in_this_pty[ entries[ 1 ] ] = entries[ 10 ]  ##  pid is unique
+
+            full_proc = ''
+
+            ##  Get all components of the command
+
+            for token in entries[ 10: ]:
+                full_proc += token
+                full_proc += ' '
+
+            procs_in_this_pty[ entries[ 1 ] ] = full_proc  ##  pid is unique
 
     return procs_in_this_pty
 
@@ -781,13 +835,15 @@ def new_buf( ):
     ##  If a buffer named vimsh doesn't exist create it, if it
     ##  does, switch to it.  Use the config options for splitting etc.
 
-    filename = "vimsh"
+    filename = "_vimsh_"
 
     try:
         vim.command( 'let dummy = buflisted( "' + filename + '" )' )
         exists = vim.eval( "dummy" )
 
         if exists == '0':
+
+            dbg_print( 'new_buf: file ' + filename + ' doesn\'t exist' )
 
             if split_open:
                 vim.command( "new " + filename )
@@ -806,8 +862,8 @@ def new_buf( ):
             vim.command( 'inoremap <buffer> ' + timeout_key + ' <esc>:python vim_shell.set_timeout( )<CR>' )
             vim.command( 'nnoremap <buffer> ' + timeout_key + ' :python vim_shell.set_timeout( )<CR>' )
 
-            vim.command( 'inoremap <buffer> ' + new_prompt_key + '  <esc>:python vim_shell.new_prompt( )<CR>' )
-            vim.command( 'nnoremap <buffer> ' + new_prompt_key + '  :python vim_shell.new_prompt( )<CR>' )
+            vim.command( 'inoremap <buffer> ' + new_prompt_key + ' <esc>:python vim_shell.new_prompt( )<CR>' )
+            vim.command( 'nnoremap <buffer> ' + new_prompt_key + ' :python vim_shell.new_prompt( )<CR>' )
 
             vim.command( 'inoremap <buffer> ' + page_output_key + ' <esc>:python vim_shell.page_output( )<CR>' )
             vim.command( 'nnoremap <buffer> ' + page_output_key + ' :python vim_shell.page_output( )<CR>' )
@@ -840,7 +896,9 @@ def new_buf( ):
 
         else:
 
-            vim.command( "edit vim_shell" )
+            dbg_print( 'new_buf: file ' + filename + ' exists' )
+
+            vim.command( "edit " + filename )
             return 1
 
     except:

@@ -145,10 +145,23 @@
                         use the vimsh.zip file available at my website.
                       * Fixed 'exit' of shell killing entire vim session rather
                         than just the vimsh buffer.
-                      * Fixed empty line being added after paging output (F5)
-                      * Now check for password prompt when paging slow output(F5).
+                      * Fixed empty line being added after paging output (default F5)
+                      * Now check for password prompt when paging slow output (default F5).
                       * Cleanup of filename handling
                       * Removed some un-needed ';' characters at the end of
                         lines ( this is what happens when you do C all day )
                       * Removed duplicate sending of EOF in send_eof.
                       * Fixed pty/# of proc detection
+
+    05/09/02 - 0.14
+                      * Changed name of buffer name from vimsh to _vimsh_ since this
+                        script is usually placed in a directory called vimsh.
+                        If vimsh was a directory in vim's cwd it would edit
+                        the directory using the explorer plugin.
+                      * Fixed procs_in_pty to return full name of command last executed.
+                      * Fixed not going back to insert mode after changing timeout.
+                      * Added current timeout to timeout prompt.
+                      * Correctly handle bogus entered timeout values, like 'ls'.
+                      * Added support routine to return the current mode.
+                      * Added a support routine to determine if last command
+                        executed is still running.
