@@ -13,6 +13,8 @@
 # tested on:     vim 6.0 p11 on slackware linux 8.0
 # disclaimer:    Use at your own risk, alpha code.  I'm not
 #                responsible if it hoses your machine.
+# limitations:   can only execute line oriented programs, no vim
+#                within vim stuff
 # 
 # notes:
 #
@@ -43,29 +45,28 @@
 #         can only be used once, so the buffer needs to be
 #         deleted ( bd! ).  __init__ doesn't seem to reset them, need
 #         to investiage it more.
-#  TODO:  Fix printing, first line and end of reads get newline added
-#         therefore prompt starts on vim line 2, and after 1024
-#         I'm going down a line and continuing.  
 #  TODO:  Handle modified, and make it optional
 #  TODO:  Long commands are unresponsive, i.e. find ~  Figure out a way to
 #         print to the file and scroll the buffer as I get input.  May not
 #         be possible without returning from python code.
 #  TODO:  Look into using popenX and pipes for platforms that don't support
 #         pty.  I had fiddled with popen3 before and had lukewarm results.
-#  TODO:  The returned cursor column always seems to be off by 1, is it 0
-#         indexed?
-#  TODO:  Cleaner way of killing the shell process
 #  TODO:  Handle ansi escape sequences ( colored prompts, LS_COLORS )
+#  TODO:  Security, passwords for su, etc not masked
+#  TODO:  I sometimes still see an occasional single  for some commands
+#  TODO:  Commands with lots of output have lines truncated and continued
+#         one the subsequent lines ( end of read length 2048 )
 #
 #  history:
 #
 #    12/05/01 - 0.2a - Fixed tabwidth, not on prompt message, fixed handling
 #                      of user input execution rm -i works, shells now die via
 #                      autocommand
+#    12/06/01 - 0.3a - Fixed the first line issue, and printed s
 #
 ###############################################################################
 
-import vim, sys, os, pty, tty, select, string, signal
+import vim, sys, os, pty, tty, select, string, signal, re
 
 class vimsh:
     def __init__( self, sh, arg ):
@@ -74,7 +75,6 @@ class vimsh:
             self.delay = 0.1
 
             self.prompt_line, self.prompt_cursor = vim.current.window.cursor
-            self.prompt_line += 1  ##  hack until I write starting from first line
 
     def setup_pty( self ):
 
@@ -97,32 +97,55 @@ class vimsh:
         while 1:
             r, w, e = select.select( [ self.fd ], [], [], self.delay )
 
-            for File in r:
-                line = os.read( self.fd, 1024 ).strip( )
+            for file_iter in r:
+                line = os.read( self.fd, 2048 )
 
-                ##  should prob be os.pathsep, but vim throws
-                ##  exception if they have newlines
                 print_lines = string.split( line, '\n' )
 
-                for Line in print_lines:
-                    Line.strip( )          
+                ## if more than one entry, splitting on '\n' seems to return n + 1 entries
+                if len( print_lines ) > 1:
+                    print_lines = print_lines[ :-1 ]
 
-                    ##  TODO: Some commands still have trailing ^M, i.e. find
+                for line_iter in print_lines:
 
-                    buffer.append( Line )
+                    m = re.search("$", line_iter )
+
+                    cur_line, cur_row = vim.current.window.cursor
+
+                    if m == None:
+
+                        ##  just print the line no append if we didn't find 
+                        buffer[ cur_line - 1 ] = line_iter 
+                        vim.command( "normal G$" )
+
+                    else:
+                        ##  neither of these remove the trailing \n why??
+                        # line_iter.strip( )          
+                        # re.sub( "\n", "", line_iter )
+
+                        line_iter = line_iter[ :-1 ]   # force it
+
+                        buffer[ cur_line - 1 ] = line_iter 
+                        buffer.append( "" )
+
+                        vim.command( "normal G$" )
+
+                vim.command( "normal G$" )
 
             if r == []:
                 vim.command( "normal G$" )
 
-                ##  seems to be zero based in python, but not in vim??
                 self.prompt_line, self.prompt_cursor = vim.current.window.cursor
+
+                ##  seems to be zero based in python, but not in vim??
                 self.prompt_cursor += 1
 
                 break
 
     def execute_cmd( self ):
         ##  For now only allow executing commands on the "latest" prompt line
-        ##  or right after the printing of a line that needs user input
+        ##  or right after the printing of a line that needs user input, maybe
+        ##  map normal 'o' to just send enter and give a new prompt??
 
         cur = vim.current.buffer
         cur_line, cur_row = vim.current.window.cursor
@@ -133,11 +156,12 @@ class vimsh:
             exe_line = whole_line[ self.prompt_cursor: ]
 
             self.write( exe_line + "\n" )
+
+            cur.append( "" )
+            vim.command( "normal G$" )
             self.read( cur )
 
             vim.command( "startinsert" )
-
-            #self.prompt_line, self.prompt_cursor = vim.current.window.cursor
 
         else:
             print "Not on latest prompt line ( :" + str( self.prompt_line ) + " )"
@@ -198,16 +222,16 @@ except:
     print vim.error
 
 cur = vim.current.buffer
-del cur[:]
 
 ##  temporary, change to suit, but I've only tested with sh so far
-sh = "/bin/zsh"
+##  any ansi escape codes will corrupt the display
+sh = "/bin/sh"
 arg = "-i"
 
 vim_shell = vimsh( sh, arg )
 vim_shell.setup_pty( )
 
-vim.command( "inoremap <buffer> <CR>  <esc>:python vim_shell.execute_cmd( )<CR>" )
+vim.command( "inoremap <buffer> <CR> <esc>:python vim_shell.execute_cmd( )<CR>" )
 vim.command( "au BufWipeout vim_shell <esc>:python vim_shell.end( )<CR>")
 
 ##  Read any ouput shell does at startup, either prompt
