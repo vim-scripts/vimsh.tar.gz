@@ -9,9 +9,14 @@
 
 * Get ctrl-c working on Windows, commands like 'findstr foo' hang.
 
-* How to handle stderr inline with stdout? popen4?
+* verify ctrl-d on solaris works
 
-* new <buffer> uses existing one.  Currently can only be used once.
+* Ctrl-D/EOF not working on BSD for /bin/sh, verify still working on Linux (bash).
+
+* Fix handling of ctrl-d, needs to do a bdelete.  Put proper checking of
+  exiting flag after sigchld to avoid exceptions.
+
+* How to handle stderr inline with stdout? popen4?
 
 * Handle ( syntax hi ) ansi escape sequences ( colored prompts, LS_COLORS ).
 
@@ -24,9 +29,10 @@
 
 * Support vim/python native to 'cygwin', cygwin seems to support select.
 
-* Ctrl-D/EOF not working on BSD for /bin/sh, verify still working on Linux (bash).
-
-* Fix handling of ctrl-d, needs to do a bdelete.  Put proper checking of
-  exiting flag after sigchld to avoid exceptions.
-
 * Handle textwidth appropriately as well as multiple line commands.
+
+* tab completion
+
+* command history
+
+* fix handling of prompt

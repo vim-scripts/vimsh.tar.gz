@@ -21,7 +21,8 @@
 
         python enabled vim ( +python )
         operating system that supports pty (unix) -or- popen/pipes (Windows)
-        python 2.2 or higher, may work with 2.0 or higher, but not tested
+        python 2.2 or higher, may work with 2.0, but not tested.
+	    Tested w/ 2.2 and 2.3.
 
     requirements in detail:
 
@@ -35,16 +36,15 @@
 
     I have tested vimsh on the following configurations:
 
-        vim 6.0 p93 / Slackware Linux 8.0 / python 2.2b2
-        vim 6.0 p93 / WinNT 4.0 / Activestate Python 2.2
-        vim 6.0 p93 / Win2K     / Standard Python 2.2
-        vim 6.0 p48 / FreeBSD 4.6 / python 2.2
+        vim 6.0-6.2 / Slackware Linux 8.0 / python 2.2b2, 2.2.3, 2.3.X
+        vim 6.0-6.2 / WinNT 4.0 / Activestate Python 2.2
+        vim 6.0-6.2 / Win2K     / Standard Python 2.2
+        vim 6.0-6.2 / FreeBSD 4.6-4.9 / python 2.2.X, 2.3.X
 
     The pty library is 'unsupported' by python on some platforms
     but I have received reports of success on these platforms
     in addition to the ones I have tested on:
 
-    FreeBSD
     QNX
     Solaris( waiting for confirmation of fix )
 
@@ -72,6 +72,12 @@
     you downloaded as well as this file, a TODO file, and the ChangeLog.
 
     Putting the scripts in your plugin directory is not recommended.
+
+    You can also run have multiple buffers using vimsh:
+
+	    :VimShNewBuf foo
+
+    will create a new additional vimsh buffer with the name _foo_.
 
 :: vimsh license ::
 

@@ -209,4 +209,14 @@
                         multiple line commands.
     09/19/03 - 0.16 
                       * Changed '^M' to '\n' for python 2.3.  Vimsh would not
-                      run w/ python 2.3. Backwards compatible change.
+                        run w/ python 2.3. Backwards compatible change.
+
+    11/29/03 - 0.17 
+                      * Multiple buffer support <ddarius@hotpop.com>.
+                        i.e. :VimShNewBuf foo
+                      * Default behavior of creating a single vimsh buffer
+                        when sourced added to multiple buffer patch.
+                      * Multi-line command support <ddarius@hotpop.com>
+		              * made a clear screen routine honoring g:vimsh_clear_all
+		              * clear screen key mapping g:vimsh_clear_key (default F9) <ddarius@hotpop.com>
+                      * use startinsert! <ddarius@hotpop.com>
