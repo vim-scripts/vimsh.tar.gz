@@ -29,8 +29,6 @@
 
 * Support vim/python native to 'cygwin', cygwin seems to support select.
 
-* Handle textwidth appropriately as well as multiple line commands.
-
 * tab completion
 
 * command history

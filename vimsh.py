@@ -6,8 +6,8 @@
 # author:   brian m sturk   bsturk@adelphia.net,
 #                           http://users.adelphia.net/~bsturk
 # created:  12/02/01
-# last_mod: 11/29/03
-# version:  0.17
+# last_mod: 01/31/04
+# version:  0.18
 #
 # usage, etc:   see vimsh.readme
 # history:      see ChangeLog
@@ -50,9 +50,9 @@ class vimsh:
 
         self.prompt_line, self.prompt_cursor = self.get_vim_cursor_pos( )
 
-        self.password_regex   = [ '^Password:',            ##  su
-                                  'password:',             ##  ssh
-                                  'Password required' ]    ##  ftp
+        self.password_regex   = [ '^\s*Password:',         ##  su, ssh, ftp
+                                  'password:',             ##  ???, seen this somewhere
+                                  'Password required' ]    ##  other ftp clients
 
         self.last_cmd_executed     = "foobar"
         self.keyboard_interrupt    = 0
@@ -217,16 +217,7 @@ class vimsh:
                 vim.command( 'au! BufDelete ' + self.filename )
                 vim.command( 'bdelete ' + self.filename )
 
-                ## Remove ourself from the list of buffers
-                idx = 0
-
-                for key, val in _BUFFERS_:
-                    if key == self.filename:
-                        break
-                    idx = idx + 1
-
-                if ( len( _BUFFERS_ ) >= idx ) & ( len( _BUFFERS_ ) != 0 ):
-                    del _BUFFERS_[ idx ]
+                remove_buf( self.filename )
 
                 return
 
@@ -241,7 +232,7 @@ class vimsh:
 
                 self.end_exe_line( )
 
-            vim.command( 'startinsert!' )
+            self.startinsert()
 
         except KeyboardInterrupt:
 
@@ -540,9 +531,9 @@ class vimsh:
 
             self.read( cur )
 
-            self.check_for_passwd( )
+            self.check_for_passwd()
 
-            vim.command( "startinsert!" )
+            self.startinsert()
 
         except KeyboardInterrupt:
 
@@ -585,7 +576,7 @@ class vimsh:
         if clear_all == '1':
             vim.command( "normal ggdG" )
 
-        self.end_exe_line( )
+        self.end_exe_line()
 
         if clear_all == '0':
             vim.command( "normal zt" )
@@ -597,7 +588,7 @@ class vimsh:
         self.execute_cmd( [""] )        #  just press enter
 
         vim.command( "normal G$" )
-        vim.command( "startinsert!" )
+        self.startinsert()
 
 ################################################################################
 
@@ -608,9 +599,34 @@ class vimsh:
 
 ################################################################################
 
+    def startinsert( self ):
+
+        cur_line, cur_row = self.get_vim_cursor_pos()
+
+        if self.buffer[cur_line - 1] == '':
+
+            # :startinsert! on an empty line starts at column 1, which is
+            # where $ takes us. This is an exception and messes things up.
+
+            dbg_print( 'startinsert: no prompt - adding space' )
+
+            self.buffer[cur_line - 1] = ' '
+
+        vim.command( "startinsert!" )
+
+################################################################################
+
     def cleanup( self ):
 
+        # NOTE: Only called via autocommand
+
         dbg_print( 'cleanup: enter' )
+
+        # Remove autocommand so we don't get multiple calls
+
+        vim.command( 'au! BufDelete ' + self.filename )
+
+        remove_buf( self.filename )
 
         if self.shell_exited:
             dbg_print( 'cleanup: process is already dead, nothing to do' )
@@ -682,9 +698,13 @@ class vimsh:
     def sigchld_handler( self, sig, frame ):
 
         dbg_print( 'sigchld_handler: caught SIGCHLD' )
-        self.shell_exited = 1
 
-        os.wait()
+        if os.waitpid( self.pid, os.WNOHANG )[0]:
+            self.shell_exited = 1
+            dbg_print( 'sigchld_handler: shell exited' )
+
+        else:
+            dbg_print( 'sigchld_handler: shell hasn\'t exited, ignoring' )
 
 ################################################################################
 
@@ -892,6 +912,8 @@ def new_buf( _filename ):
         exists = vim.eval( "dummy" )
 
         if exists == '0':
+            dbg_print( 'new_buf: buffer ' + filename + ' doesn\'t exist' )
+
             if split_open == '0':
                 vim.command( 'edit ' + filename )
 
@@ -907,26 +929,26 @@ def new_buf( _filename ):
             vim.command( 'setlocal textwidth=999' )   #  BMS: Temporary, see TODO
             vim.command( 'setfiletype vim_shell' )
 
-            vim.command( 'au BufDelete ' + filename + ' :python lookup( "' + filename + '" ).cleanup( )' )
-            vim.command( 'inoremap <buffer> <CR>  <ESC>:python lookup( "' + filename + '" ).execute_cmd( )<CR>' )
+            vim.command( 'au BufDelete ' + filename + ' :python lookup_buf( "' + filename + '" ).cleanup( )' )
+            vim.command( 'inoremap <buffer> <CR>  <ESC>:python lookup_buf( "' + filename + '" ).execute_cmd( )<CR>' )
 
-            vim.command( 'inoremap <buffer> ' + timeout_key + ' <ESC>:python lookup( "' + filename + '" ).set_timeout()<CR>' )
-            vim.command( 'nnoremap <buffer> ' + timeout_key + ' :python lookup( "' + filename + '" ).set_timeout()<CR>' )
+            vim.command( 'inoremap <buffer> ' + timeout_key + ' <ESC>:python lookup_buf( "' + filename + '" ).set_timeout()<CR>' )
+            vim.command( 'nnoremap <buffer> ' + timeout_key + ' :python lookup_buf( "' + filename + '" ).set_timeout()<CR>' )
 
-            vim.command( 'inoremap <buffer> ' + new_prompt_key + ' <ESC>:python lookup ( "' + filename + '" ).new_prompt()<CR>' )
-            vim.command( 'nnoremap <buffer> ' + new_prompt_key + ' :python lookup( "' + filename + '" ).new_prompt()<CR>' )
+            vim.command( 'inoremap <buffer> ' + new_prompt_key + ' <ESC>:python lookup_buf ( "' + filename + '" ).new_prompt()<CR>' )
+            vim.command( 'nnoremap <buffer> ' + new_prompt_key + ' :python lookup_buf( "' + filename + '" ).new_prompt()<CR>' )
 
-            vim.command( 'inoremap <buffer> ' + page_output_key + ' <ESC>:python lookup ( "' + filename + '" ).page_output()<CR>' )
-            vim.command( 'nnoremap <buffer> ' + page_output_key + ' :python lookup( "' + filename + '" ).page_output()<CR>' )
+            vim.command( 'inoremap <buffer> ' + page_output_key + ' <ESC>:python lookup_buf ( "' + filename + '" ).page_output()<CR>' )
+            vim.command( 'nnoremap <buffer> ' + page_output_key + ' :python lookup_buf( "' + filename + '" ).page_output()<CR>' )
 
-            vim.command( 'inoremap <buffer> ' + eof_signal_key + ' <ESC>:python lookup ( "' + filename + '" ).send_eof()<CR>' )
-            vim.command( 'nnoremap <buffer> ' + eof_signal_key + ' :python lookup( "' + filename + '" ).send_eof()<CR>' )
+            vim.command( 'inoremap <buffer> ' + eof_signal_key + ' <ESC>:python lookup_buf ( "' + filename + '" ).send_eof()<CR>' )
+            vim.command( 'nnoremap <buffer> ' + eof_signal_key + ' :python lookup_buf( "' + filename + '" ).send_eof()<CR>' )
 
-            vim.command( 'inoremap <buffer> ' + intr_signal_key + ' <ESC>:python lookup ( "' + filename + '" ).send_intr()<CR>' )
-            vim.command( 'nnoremap <buffer> ' + intr_signal_key + ' :python lookup( "' + filename + '" ).send_intr()<CR>' )
+            vim.command( 'inoremap <buffer> ' + intr_signal_key + ' <ESC>:python lookup_buf ( "' + filename + '" ).send_intr()<CR>' )
+            vim.command( 'nnoremap <buffer> ' + intr_signal_key + ' :python lookup_buf( "' + filename + '" ).send_intr()<CR>' )
 
-            vim.command( 'inoremap <buffer> ' + clear_key + ' <ESC>:python lookup ( "' + filename + '" ).clear_screen()<CR>')
-            vim.command( 'nnoremap <buffer> ' + clear_key + ' :python lookup( "' + filename + '").clear_screen()<CR>' )
+            vim.command( 'inoremap <buffer> ' + clear_key + ' <ESC>:python lookup_buf ( "' + filename + '" ).clear_screen()<CR>')
+            vim.command( 'nnoremap <buffer> ' + clear_key + ' :python lookup_buf( "' + filename + '").clear_screen()<CR>' )
 
             ##  TODO:  Get this working to eliminate need for separate .vim file
             ##  NOTE:  None of the below works... according to a vim developer
@@ -985,15 +1007,37 @@ def spawn_buf( _filename ):
     else:
         dbg_print( 'main: buffer does exist' )
         vim.command( "normal G$" )
+        vim_shell = lookup_buf( _filename )
 
-    vim.command( "startinsert!" )
+    vim_shell.startinsert()
 
 ################################################################################
 
-def lookup ( _filename ):
+def lookup_buf ( _filename ):
     for key, val in _BUFFERS_:
         if key == _filename:
+            dbg_print( 'lookup_buf: found match ' + str( val ) )
             return val
+
+    dbg_print( 'lookup_buf: couldn\'t find match for ' + _filename )
+
+################################################################################
+
+def remove_buf ( _filename ):
+
+    ## Remove ourself from the list of buffers
+    idx = 0
+    
+    dbg_print ( 'remove_buf: looking for ' + _filename + ' to remove from BUFFER list' )
+
+    for key, val in _BUFFERS_:
+        if key == _filename:
+            break
+        idx = idx + 1
+
+    if ( len( _BUFFERS_ ) >= idx ) & ( len( _BUFFERS_ ) != 0 ):
+        dbg_print ( 'execute_cmd: removing buffer from list' )
+        del _BUFFERS_[ idx ]
 
 ############################# customization ###################################
 #

@@ -220,3 +220,15 @@
 		              * made a clear screen routine honoring g:vimsh_clear_all
 		              * clear screen key mapping g:vimsh_clear_key (default F9) <ddarius@hotpop.com>
                       * use startinsert! <ddarius@hotpop.com>
+
+     1/31/04 - 0.18 
+                      * Use waitpid rather than wait, now correctly handles :!cmd <mbays@sdf.lonestar.org>
+                      * Run pyfile command once when sourcing vimsh.vim <mbays@sdf.lonestar.org>
+                      * Handle programs that do not have a prompt <mbays@sdf.lonestar.org>
+                      * Moved invocation of startup shell in vimsh.vim to outside of pyfile 
+                        sourcing conditional.
+                      * Fixed case where buffer deleted through autocommand and same 
+                        buffer name used again would cause an error (multiple buf fix).
+                      * Fixed multiple au BufDelete commands being invoked for same vimsh buffer name
+                        (multiple buf fix).
+                      * Fixed password regex for ssh, now handles leading spaces if present within vimsh.

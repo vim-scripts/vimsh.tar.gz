@@ -4,7 +4,7 @@
 " author:   brian m sturk   bsturk@adelphia.net,
 "                           http://users.adelphia.net/~bsturk
 " created:  12/20/01
-" last_mod: 11/29/03
+" last_mod: 01/31/04
 " version:  see vimsh.py
 "
 " usage:    :so[urce] vimsh.vim
@@ -13,11 +13,14 @@ function! VimShRedraw()
     redraw
 endfunction
 
-pyfile <sfile>:p:h/vimsh.py
-
 "  Use ':VimshNewBuf name' to open a new buffer '_name_'
-
 command! -nargs=1 VimShNewBuf python spawn_buf( "_<args>_" )
+
+" Only load vimsh.py once (don't reset variables)
+if !exists("g:vimsh_loaded_python_file")
+    pyfile <sfile>:p:h/vimsh.py
+    let g:vimsh_loaded_python_file=1
+endif
 
 VimShNewBuf vimsh
 
