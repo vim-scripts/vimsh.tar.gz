@@ -1,0 +1,92 @@
+    ChangeLog
+    =========
+
+    This file contains a listing of modifications to vimsh.
+    Dates are included.  All changes by <bsturk@nh.ultranet.com> unless
+    noted.
+
+    12/05/01 - 0.2a
+                      * Fixed tabwidth
+                      * Fixed not on prompt message
+                      * fixed handling of user input execution rm -i works
+                      * shells now die via autocommand
+
+    12/06/01 - 0.3a 
+                      * Fixed the first line issue
+                      * Fixed the printed s
+
+    12/07/01 - 0.4a
+                      * Implemented clear, exit, and can now alternate between
+                      * using popen3( pipes ) or pty.  This allows platforms
+                        that do not support pty to work.  Should work on Windows
+                        flavors.
+
+    12/07/01 - 0.5
+                      * Implemented secure input of passwords,
+                      * Exit cmd works as expected, for subprocesses it
+                        exits to parent, initial shell exit will delete buffer,
+                      * Keep <Delete> from overwriting prompt
+
+    12/08/01 - 0.6
+                      * Removed the <Delete><BS> hooks.  They just weren't
+                        working as I thought they would.  Now just check
+                        for cursor to not be in prompt.
+                      * Figured out the ftp issue see "notes".
+                      * Added a mapping & func to set timeouts. 
+                      * Changed pty prompt to something useful,
+                      * Fixed clear
+
+    12/10/01 - 0.7    
+                      * Made usage of tty, pty condtional on not being windows
+                      * Removed popen buffer size
+                      * Increased timeout if using popen3
+                      * Fixed output for lines crossing consecutive reads for pty
+                      * Added map for starting a new prompt at bottom of buffer
+
+    12/11/01 - 0.8   
+                      * Windows support, tested on NT4 w/ ActiveState Python 2.2
+                        Should also work on 2K/XP. Caveat hacktor ;)
+                        Non interactive programs only, dir, findstr, attrib etc
+                        work fine, no ftp, telnet, etc yet. 
+                      * Made clear check more explicit, cleartool triggered it
+                      * Fixed the mysterious missing single char issue.
+
+    12/13/01 - 0.9
+                      * Set buftype=nofile <b.cerrina@wanadoo.fr>
+                      * Option to use current buffer if non-modified
+                      * Use vim variables for options so this file doesn't need
+                        to be modified to allow customization.
+                      * Handle cancelling of input dialogs
+                      * Flag unsupported windows console commands
+                        ( partial list see:unsupp_regex )
+
+                      * NOTE-- All attempts I've made to get interactive programs to
+                               work under Windows have failed.  Without pty/expect like
+                               functionality under Windows, interactive programs cannot
+                               work using this script.  More specifically, programs
+                               that do buffered I/O or read/write directly to the
+                               console.  I'll try any ideas submitted, but for now
+                               I'm punting.
+
+    12/20/01 - 0.10
+                      * !! NOTE !!: new way to run is to "source" vimsh.vim
+                      * /bin/sh is symlinked to csh on *bsd, added csh prompt.
+                      * Fixed mappings, needed to be set after buffer created.
+                      * Added check for buffer's existence before writing prompt
+                        and jump to prompt if it already exists.
+                      * Ctrl-c ( SIGINT ) for interrupting continuous cmds, prompts
+                        if multiple processes besides shell running.
+                      * Cleaned up exit handling
+                      * Added function and mapping for refreshing/paging
+                        output when timeout is too short.
+                      * Added vim function to redraw periodically during long
+                        operations or continuous operations ( ie ping <host> or 
+                        find /  Added redraw func to vimsh.vim
+                      * Created ChangeLog, TODO, and vimsh.vim.  vimsh.vim is
+                        now the way that vimsh is started.  The vimsh.vim is
+                        a place for me to put code that is unsupported when
+                        running python scripts within vim.  Only limitation so
+                        far has been to not be able to define a vim function
+                        from within a python script.  This file will also allow
+                        users to add it to their plugin directory ( although
+                        it is highly unrecommended )

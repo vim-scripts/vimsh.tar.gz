@@ -1,0 +1,20 @@
+* Fix BSD exit hang
+
+* How to handle stderr inline with stdout? popen4?
+
+* new <buffer> uses existing one.  Currently can only be used once.
+
+* Handle ( syntax hi ) ansi escape sequences ( colored prompts, LS_COLORS )
+
+* How can I use regex to determine syntax but hide/remove
+  the escape codes?  Can be folding done within 1 line?
+
+* Add hooks for write/read so scripts can ride on top of this one.
+  i.e. GDB run in terminal buffer, script hooks write read etc parses
+  output, and uses glyph to highlight current line, for example.
+
+* Support vim/python native to 'cygwin', cygwin seems to support select
+
+* Add some PS1 type flags for built in prompt.
+
+* Allow splitting options, ala explorer.vim
