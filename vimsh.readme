@@ -1,223 +1,164 @@
-         :: vimsh readme ::
+:: vimsh readme ::
 
-vimsh is a python together with a vim script that allows a user to run
-a shell within a [g]vim buffer.  There are certain requirements and
-some limitations depending on your platform so please read on. vimsh
-works on both the console and GUI versions of vim so from this point on
-references to vim include GUI versions of vim.
+    vimsh is a python script and vim script that allow a user to run
+    a shell within a [g]vim buffer.  There are certain requirements and
+    some limitations depending on your platform so please read on.  vimsh
+    works on both the console and GUI versions of vim so from this point on
+    references to vim also include GUI versions of vim.
 
-If you like this script and vim users are allowed to vote on new
-features in vim again, please put in a vote for vi editing in the ex
-command window ( not the new command window/buffer ).  It's the only
-feature I would like vim to have. 
+    *********************************************************************
+    NOTE:
 
-         :: vimsh requiremenets ::
+        If you like this script and vim users are allowed to vote on new
+        features in vim again, PLEASE put in a vote for vi editing in the ex
+        command window ( not the new command window/buffer ).  It's the only
+        new feature I would like vim to have. 
+    *********************************************************************
 
-requirements summary:
+:: vimsh requirements ::
 
-    python enabled vim ( +python )
-    operating system that supports pty (Unix) -or- popen (Windows)
-    python 2.2 or higher, may work with 2.0 or higher, but not tested
+    requirements summary:
 
-vimsh requires a python enabled vim ( +python ), run
-:ver to see if you have +python for your build of vim.
+        python enabled vim ( +python )
+        operating system that supports pty (Unix) -or- popen (Windows)
+        python 2.2 or higher, may work with 2.0 or higher, but not tested
 
-vimsh also requires that your operating system supports
-either pty ( pseudo ttys ) -or- the popen family of calls.
-Most unix variants have support for pty in one form or another
-and most other platforms, for instance Windows, support popen.
+    requirements in detail:
 
-I have tested vimsh on the following configurations:
+    vimsh requires a python enabled vim ( +python ), run
+    :ver to see if you have +python for your build of vim.
 
-    vim 6.0 p93 / slackware linux 8.0 / Python 2.2b2
-    vim 6.0 p93 / WinNT 4.0 / Activestate Python 2.2
+    vimsh also requires that your operating system supports
+    either pty ( pseudo ttys ) -or- the popen family of calls.
+    Most unix variants have support for pty in one form or another
+    and most other platforms, for instance Windows, support popen.
 
-         :: running vimsh ::
+    I have tested vimsh on the following configurations:
 
-You can run vimsh by either sourcing the file vimsh.vim 
-on the ex command line like this assuming you are in the 
-directory that vimsh.vim is located:
+        vim 6.0 p93 / slackware linux 8.0 / Python 2.2b2
+        vim 6.0 p93 / WinNT 4.0 / Activestate Python 2.2
 
-    :source vimsh.vim
+    The pty library is 'unsupported' by Python on some platforms
+    but I have received reports of success on these platforms
+    in addition to the ones I have tested on:
 
-It is much easier to assign a key mapping to load it.  <Leader> is what
-ever you use as your leader sequence, I personally use '\'.
+    FreeBSD
+    QNX
+    Solaris( waiting for confirmation of fix )
 
-A useful mapping might be:
+:: running vimsh ::
 
-     nmap <Leader>sh           :source <path_to_script>/vimsh.vim<CR>
+    You can run vimsh by either sourcing the file vimsh.vim 
+    on the ex command line like this assuming you are in the 
+    directory that vimsh.vim is located:
 
-I use one like this:
+        :source vimsh.vim
 
-     nmap \sh                  :source <path_to_script>/vimsh.vim<CR>
+    It is much easier to assign a key mapping to load it.  <Leader> is what
+    ever you use as your leader sequence, I personally use '\'.
 
-There is a python script, vimsh.py, that needs to be in the same directory
-as vimsh.vim.  It should have been included in the .tar.gz or .zip file
-you downloaded as well as this file, a TODO file, and the ChangeLog.
+    A useful mapping might be:
 
-Putting the scripts in your plugin directory is not recommended.
+         nmap <Leader>sh           :source <path_to_script>/vimsh.vim<CR>
 
-         :: vimsh license ::
+    I use one like this:
 
-Use at your own risk.  I'm not responsible if it hoses your
-machine.  All I ask is that I'm made aware of changes so I can
-incorporate them into my version, that and my contact info stays in 
-the script.
+         nmap \sh                  :source <path_to_script>/vimsh.vim<CR>
 
-         :: vimsh limitations ::
+    There is a python script, vimsh.py, that needs to be in the same directory
+    as vimsh.vim.  It should have been included in the .tar.gz or .zip file
+    you downloaded as well as this file, a TODO file, and the ChangeLog.
 
-Running a shell within vim has it's limitations due to the fact
-that vim doesn't have the code necessary to run an interactive
-shell.  vimsh uses different methods to allow this to happen
-using python.
+    Putting the scripts in your plugin directory is not recommended.
 
-general limitations:
+:: vimsh license ::
 
-    Can only execute line oriented programs, no vim within vim stuff,
-    emacs, curses, pagers, etc.
+    Use at your own risk.  I'm not responsible if it hoses your
+    machine.  All I ask is that I'm made aware of changes so I can
+    incorporate them into my version, that and my contact info stays in 
+    the script.
 
-pty:
+:: vimsh limitations ::
 
-    The best support and formatting.  Most unix platforms support ptys.
-    You can run interactive line based commands like ftp, telnet, rm,
-    ping, cp, ssh, etc.
+    Running a shell within vim has it's limitations due to the fact
+    that vim doesn't have the code necessary to run an interactive
+    shell.  vimsh uses different methods to allow this to happen
+    using python.
 
-popen:
+    general limitations:
 
-    Only non-interactive programs are supported.  Since this mostly applies
-    to the Windows platform, this means you can run programs like:
+        Can only execute line oriented programs, no vim within vim stuff,
+        emacs, [n]curses, pagers, etc.
 
-        dir, findstr, type, attrib, set, etc.  
-        
-        Interactive programs like ftp, telnet will *not* work.
+    pty:
 
-    This is because these programs seem to use buffered output or write
-    directly to the console using the Windows Console API. Unfortunately,
-    this means that without pty functionality for windows, these commands
-    cannot be run within vimsh.
+        The best support and formatting.  Most unix platforms support ptys.
+        You can run interactive line based commands like ftp, telnet, rm,
+        ping, cp, ssh, etc.
 
-         :: vimsh customization ::
+    popen:
 
-It is recommended not to modify the vimsh.py or vimsh.vim to customize
-vimsh.  Support exists in vimsh to retreive settings that have been
-set in your .vimrc etc. 
-
-Here are some examples of how it would look in your .vimrc:
-
-      let g:vimsh_prompt_override = 1
-      let g:vimsh_prompt_pty      = "%m%#"
-      let g:vimsh_split_open      = 0
-      let g:vimsh_sh              = "/bin/zsh"
-
-Below is the list of variables that you can customize and what they do.  
-
-    Non pty prompt:
-
-        If your platform doesn't support pty a prompt must be generated.
-
-            The default is "%>"
-            The variable name is g:vimsh_pipe_prompt
-
-    Pty enable prompt override:
-
-        If you are using pty and have a prompt which doesn't display
-        correctly in vimsh, i.e. ansi or multiline (at the moment unsupported),
-        you can let vimsh override the PROMPT and PS1 settings.  Set it to 0
-        to use your settings, 1 to override.
-
-            The default is 1
-            The variable name is g:vimsh_pty_prompt_override
-
-    Pty prompt:
-
-        If you chose to let vimsh override the PROMPT and PS1 variables
-        this is the string to use for it.
-
-            The default on BSD based systems is "[%m:%c3] %n%#"    <-- csh
-            The default on other Unix systems is ""\u@\h:\w\$ "    <-- bash
-
-            The variable name is g:vimsh_prompt_pty
-    
-    Shell program name:
-
-        The name of the program to run as your shell.
-
-            The default Unix is "/bin/sh"        <-- usually sym link to default
-            The default on Win2k/NT is "cmd.exe"
-
-            The variable name is g:vimsh_sh
-
-    Shell argument:
-
-        When the shell is invoked this argument is passed as an option.
-
-            The default Unix is "-i"
-            The default on Win2k/NT is "" (nothing)
-
-            The variable name is g:vimsh_sh_arg
-    
-     'clear' command behavior:
-
-        When you type the command clear it can behave in 2 different
-        ways within vimsh.  It can either scroll the buffer so that
-        the prompt is on the first visible line of the buffer keeping
-        the buffer contents, or it can completely empty the buffer.
-        Use 0 to just scroll, 1 to delete the contents of the buffer.
-        
-            The default is 0
-            The variable name is g:vimsh_clear_all
-
-      New vimsh window behavior:
-
-        Controls how vimsh opens a new instance.
-
-            Use 0 to use the current buffer if not modified, else split.
-            Use 1 to always split the current buffer and start vimsh
-            in that buffer.
-
-            The default is 1
-            The variable name is g:vimsh_split_open
-
-       Keymappings:
-
-            Setting read timeouts, see timeout notes below.
-
-                 g:vimsh_timeout_key, default is <F3>
-
-            Printing new prompt at bottom (useful if stuck)
-
-                 g:vimsh_new_prompt_key, default is <F4>
-
-            Refresh output ( page ).  Use if you're not seeing
-            output, see timeout notes below.  Good for a command
-            line ping <hostname> on Unix where output just
-            keeps coming until you stop it.
-
-                 g:vimsh_page_output_key, default is <F5>
-
-        :: vimsh notes ::
-
-The timeouts for reading are set low ( <= 0.2 sec ) for local filesystem
-and application use. If you plan on running telnet/ftp/ssh etc, pretty
-much any network based app, you will need to bump up the timeouts if you
-have a slower connection. This is not an exact science. If you're not
-seeing all of the output or having to hit enter to see output you need
-to bump the timeout up.  Being conservative won't hurt. See the mappings for
-setting the timeouts for reads and refreshing output.
-
-         :: vimsh help ::
-
-Feel free to email me (bsturk@nh.ultranet.com) with issues regarding
-vimsh or if you've found a bug etc. Please read this file, and the TODO
-to see if I already know about the issue, or is a known limitation
-before contacting me.  If you do email me please include the output
-of :ver from vim, the version of python you have installed and what
-operating system you are running on in your message.
-
-    :: vimsh info ::
-
-The latest version is always available @
-     http://www.nh.ultranet.com/~bsturk/vim.html
-   
-Please send bug reports, suggestions, and other email to
-    bsturk@nh.ultranet.com.
+        Only non-interactive programs are supported.  Since this mostly applies
+        to the Windows platform, this means you can run programs like:
+
+            dir, findstr, type, attrib, set, ping, etc.  
+            
+            Interactive programs like ftp, telnet, ssh will *not* work.
+
+        This is because these programs seem to use buffered output or write
+        directly to the console using the Windows Console API.  Unfortunately,
+        this means that without pty functionality for windows ( or a lot of
+        work on my part ), these commands cannot be run within vimsh.
+
+        Also commands that wait on standard input currently cannot
+        be interrupted w/ ctrl-c.  i.e. running 'findstr foo', since
+        there is no file spec the command will wait and hang the shell
+        session within vim.
+
+:: vimsh customization ::
+
+    It is recommended not to modify the vimsh.py or vimsh.vim to customize
+    vimsh.  Support exists in vimsh to retreive settings that have been
+    set in your .[g]vimrc or equivalent. 
+
+    Here are some examples of how it would look in a .vimrc:
+
+          let g:vimsh_prompt_override = 1
+          let g:vimsh_prompt_pty      = "%m%#"
+          let g:vimsh_split_open      = 0
+          let g:vimsh_sh              = "/bin/zsh"
+
+    The list of variables was getting too long and that meant I had to duplicate
+    what was already in vimsh.py in this file, so please read vimsh.py
+    for variables that can be customized.  Look for the section in the file
+    labeled 'customization'.
+
+:: vimsh notes ::
+
+    The timeouts for reading are set low ( <= 0.2 sec ) for local filesystem
+    and application use. If you plan on running telnet/ftp/ssh etc, pretty
+    much any network based app, you can bump up the timeouts if you
+    have a slower connection.  This is not an exact science. If you're not
+    seeing all of the output or having to hit enter to see output you can
+    bump the timeout up.  Being conservative won't hurt. See the mappings for
+    setting the timeouts for reads and refreshing output.  If you don't want
+    to change the timeouts you can just press Enter or F5 to check for more
+    output from the command.
+
+:: vimsh help ::
+
+    Feel free to email me (bsturk@nh.ultranet.com) with issues regarding    
+    vimsh or if you've found a bug etc.  Please read this file, the          
+    ChangeLog, and the TODO to see if I already know about the issue, or    
+    is a known limitation before contacting me.  If you do email me please   
+    include the output of :ver from vim, the version of python you have     
+    installed, what operating system you are running, and the output
+    of running vimsh w/ _DEBUG_ set to 1 in vimsh.py in your email. 
+
+:: vimsh info ::
+
+    The latest version is always available @
+         http://www.nh.ultranet.com/~bsturk/vim.html
+       
+    Please send bug reports, suggestions, and other email to
+        bsturk@nh.ultranet.com.

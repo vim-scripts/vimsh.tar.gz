@@ -8,8 +8,8 @@
     12/05/01 - 0.2a
                       * Fixed tabwidth
                       * Fixed not on prompt message
-                      * fixed handling of user input execution rm -i works
-                      * shells now die via autocommand
+                      * Fixed handling of user input execution rm -i works
+                      * Shells now die via autocommand
 
     12/06/01 - 0.3a 
                       * Fixed the first line issue
@@ -18,7 +18,7 @@ s
 
     12/07/01 - 0.4a
                       * Implemented clear, exit, and can now alternate between
-                      * using popen3( pipes ) or pty.  This allows platforms
+                        using popen3( pipes ) or pty.  This allows platforms
                         that do not support pty to work.  Should work on Windows
                         flavors.
 
@@ -70,7 +70,7 @@ s
                                I'm punting.
 
     12/20/01 - 0.10
-                      * !! NOTE !!: new way to run is to "source" vimsh.vim
+                      * !! NOTE !! -- New way to run is to "source" vimsh.vim
                       * /bin/sh is symlinked to csh on *bsd, added csh prompt.
                       * Fixed mappings, needed to be set after buffer created.
                       * Added check for buffer's existence before writing prompt
@@ -94,10 +94,44 @@ s
 
     03/08/02 - 0.11
                       * Added support for sending EOF. Default
-                        mapping is Ctrl-D (C-d>.  Now you can run python
-                        for example in a buffer and quit it by typing
+                        mapping is Ctrl-D <C-d>.  Now you can run python
+                        (pty only) for example in a buffer and quit it by typing
                         Ctrl-D.
                       * Fixed snafu of line split in the middle of python
                         statement which kept script from loading.  WHOOPS.
+                        NOTE TO SELF, don't edit and test vimsh in the same
+                        vim session!
                       * Made the signalling mechanism more generic so I can
                         add more handlers in the future.
+
+    04/04/02 - 0.12
+                      * Fix for Solaris pty detection.
+                      * EOF and SIGINT now query termios settings so
+                        the 'right thing' happens.  Users can still map
+                        whatever vim key sequence they want for these
+                        operations.  Support for more of these coming
+                        in future versions.
+                      * Removed now unused vimsh.signal function.
+                      * Output of slower commands after refresh give
+                        better but still not perfect output.
+                      * For pty, SIGINT now flushes remaining data which will
+                        work for some commands, i.e. ping.  Some apps still
+                        will not flush correctly, find(1) for example.
+                      * Added a help message for SIGINT handler which can be
+                        disabled by setting vimsh_show_workaround_msgs
+                        to 0 in your .vimrc.  It just explains how to get
+                        around not seeing the prompt for commands that don't
+                        flush correctly after SIGINT.
+                      * Go back to insert mode after paging output.
+                      * Fixes and speed ups for Windows
+                            - BufWipeout wasn't being hit so lots of cmd.exe
+                              instances being left around, changed to
+                              BufDelete.
+                            -  wasn't being removed from end of lines that
+                              had it, i.e. ping.exe.
+                            - Buffer size for reading from pipe has been
+                              optimized somewhat.
+                            - Return to insert mode after trying to execute
+                              unsupported command.
+                            - Changed redraw frequency for better interactive
+                              response.

@@ -1,5 +1,3 @@
-* Fix occasional exit hang
-
 * How to handle stderr inline with stdout? popen4?
 
 * new <buffer> uses existing one.  Currently can only be used once.
@@ -17,4 +15,4 @@
 
 * Add some PS1 type flags for built in prompt.
 
-* Allow splitting options, ala explorer.vim
+* Get ctrl-c working on Windows, commands like 'findstr foo' hang.
