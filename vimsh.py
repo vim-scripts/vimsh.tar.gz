@@ -6,19 +6,21 @@
 # author:   brian m sturk ( bsturk@nh.ultranet.com )
 # created:  12/02/01
 # last_mod: 12/07/01
-# version:  0.4a
+# version:  0.5
 #
 # usage:         from a script or ex   pyf[ile] vimsh.py
 # requirements:  python enabled vim
 #                a platform that supports pty -or- popen
-#                
 # tested on:     vim 6.0 p11 on slackware linux 8.0
-# disclaimer:    Use at your own risk, alpha code.  I'm not
-#                responsible if it hoses your machine.
+#
+# license:       Use at your own risk.  I'm not responsible if
+#                it hoses your machine.  All I ask is that
+#                I'm made aware of changes and my contact
+#                info stays in the script.
 #
 # limitations:   can only execute line oriented programs, no vim
 #                within vim stuff, curses, etc.
-#
+# 
 # customize:     see section way below "CUSTOMIZE"
 # 
 # notes:
@@ -55,13 +57,13 @@
 #         print to the file and scroll the buffer as I get input.  May not
 #         be possible without returning from python code.
 #  TODO:  Handle ansi escape sequences ( colored prompts, LS_COLORS )
-#  TODO:  Security, passwords for su, etc not masked
 #  TODO:  I sometimes still see an occasional single  for some commands
 #  TODO:  Commands with lots of output have lines truncated and continued
 #         on the subsequent line ( end of read length:4096 )
 #  TODO:  Set prompt until I get ansi parsing/syn hilighting working
 #         How can I use regex to determine syntax but hide/remove
 #         the escape codes?  Folding??
+#  TODO:  <Delete> hook works but not <BS>
 #
 #  history:
 #
@@ -73,6 +75,10 @@
 #                      using popen3(pipes) or pty.  This allows platforms
 #                      that do not support pty to work.  Should work on Windows
 #                      flavors.
+#    12/07/01 - 0.5  - Implemented secure input of passwords,
+#                      Exit cmd works as expected, for subprocesses it
+#                      exits to parent, initial shell exit will delete buffer,
+#                      Keep <Delete> from overwriting prompt
 #
 ###############################################################################
 
@@ -90,6 +96,13 @@ class vimsh:
 
         self.pipe_prompt = _prompt
         self.prompt_line, self.prompt_cursor = vim.current.window.cursor
+
+        ##  add other password queries to this list
+
+        self.password_regex = ["^Password:",            ##  su
+                               "Password required"]     ##  ftp
+
+        self.last_cmd_executed = ""
 
     def setup_pty( self, _use_pty ):
         self.using_pty = _use_pty
@@ -123,13 +136,30 @@ class vimsh:
 
     def write( self, _cmd ):
         os.write( self.ind, _cmd )
+        self.last_cmd_executed = _cmd
 
     def read( self, _buffer ):
         while 1:
             r, w, e = select.select( [ self.outd ], [], [], self.delay )
 
             for file_iter in r:
-                line = os.read( self.outd, 4096 )
+
+                try:
+                    line = os.read( self.outd, 4096 )
+
+                except:
+                    ##  chances are if the user typed exit
+                    ##  and we have an I/O error it's because
+                    ##  the process is gone.
+
+                    ##  Why doesn't *THIS* trigger??  Can == be
+                    ##  used as strcmp?
+                    ##  if self.last_cmd_executed == "exit":
+
+                    if re.search("^\s*exit\s*$", self.last_cmd_executed ):
+                        self.cleanup()
+                        vim.command("bd!")
+                        return -1
 
                 print_lines = string.split( line, '\n' )
 
@@ -176,51 +206,87 @@ class vimsh:
                 self.prompt_cursor += 1
                 break
 
-    def execute_cmd( self ):
+    def execute_cmd( self, _cmd = None ):
         ##  For now only allow executing commands on the "latest" prompt line
         ##  or right affter the printing of a line that needs user input, maybe
         ##  map normal 'o' to just send enter and give a new prompt??
 
+        print ""            ## clears the ex command window
         cur = vim.current.buffer
         cur_line, cur_row = vim.current.window.cursor
 
-        if cur_line == self.prompt_line:
-
-            whole_line = cur[ cur_line - 1 ]
-            exe_line = whole_line[ self.prompt_cursor: ]
-
-            ##  check for commands that should be handled differently first
-
-            if re.search("^\s*clear", exe_line ):
-                self.write( "" + "\n" )    ##  new prompt
-
-                if clear_all:
-                    vim.command("ggdG")
-
-                self.end_exe_line()
-
-                if not clear_all:
-                    vim.command("normal zt")
-
-            elif re.search("^\s*exit$", exe_line ):
-                vim.command("bd!")    ##  TODO:  handle this better
-                return
+        if _cmd == None:            ##  grab it from buffer
+            if cur_line == self.prompt_line:
+                whole_line = cur[ cur_line - 1 ]
+                _cmd = whole_line[ self.prompt_cursor: ]
 
             else:
-                self.write( exe_line + "\n" )
-                self.end_exe_line()
+                print "Not on latest prompt line ( :" + str( self.prompt_line ) + " )"
+                return
 
-            vim.command( "startinsert" )
+        ##  check for commands that should be handled differently first
+
+        if re.search("^\s*clear", _cmd ):
+            self.write( "" + "\n" )    ##  new prompt
+
+            if clear_all:
+                vim.command("ggdG")
+
+            ret = self.end_exe_line()
+
+            if ret == -1:
+                return
+
+            if not clear_all:
+                vim.command("normal zt")
 
         else:
-            print "Not on latest prompt line ( :" + str( self.prompt_line ) + " )"
+            self.write( _cmd + "\n" )
+            ret = self.end_exe_line()
+
+            if ret == -1:
+                return
+
+        vim.command( "startinsert" )
 
     def end_exe_line ( self ):
         cur = vim.current.buffer
         cur.append( "" )
         vim.command( "normal G$" )
 
-        self.read( cur )
+        ret = self.read( cur )
+
+        if ret == -1:
+            return -1
+
+        self.check_for_passwd( )
+
+    def delete_hook( self ):
+        ##  don't delete the prompt
+        cur_line, cur_row = vim.current.window.cursor
+
+        if cur_line == self.prompt_line:
+            if cur_row <= self.prompt_cursor:
+                vim.command("normal $")
+                vim.command("startinsert")
+                return
+
+    def check_for_passwd( self ):
+        ##  check for password query in previous line
+        cur_line, cur_row = vim.current.window.cursor
+
+        prev_line = cur[ cur_line - 1 ]
+
+        #  could probably just look for the word password
+        #  but I want to avoid incorrect matches.
+
+        for regex in self.password_regex:
+            if re.search( regex, prev_line ):
+                vim.command('let password = inputsecret("Password? ")')
+                password = vim.eval( "password" )
+
+                ##  recursive call here...
+                self.execute_cmd( password )
 
     def debug_dump_str_as_hex( self, _str ):
         hex_str = ''
@@ -230,6 +296,13 @@ class vimsh:
 
         print "raw line (hex) is:"
         print hex_str
+
+    def cleanup( self ):
+        if not self.using_pty:
+            os.close( self.outd )
+            os.close( self.ind )
+
+        os.close( self.errd )       ##  all the same if pty
 
     def end( self ):
         os.kill( self.pid, signal.SIGKILL )
@@ -263,7 +336,7 @@ clear_all = 0
 # 0 use pipes, not as nice output but works on WinXX etc
 # 1 use pty, better output, only works on *nix variants
 
-use_pty   = 0
+use_pty   = 1
 
 ##  Comment these out if you don't have an ansi prompt.
 ##  may work with multi-line, haven't tried it
@@ -290,8 +363,17 @@ cur = vim.current.buffer
 vim_shell = vimsh( sh, arg, prompt )
 vim_shell.setup_pty( use_pty )
 
-vim.command( "inoremap <buffer> <CR> <esc>:python vim_shell.execute_cmd( )<CR>" )
+vim.command( "inoremap <buffer> <CR>  <esc>:python vim_shell.execute_cmd( )<CR>" )
 vim.command( "au BufWipeout vim_shell <esc>:python vim_shell.end( )<CR>")
+
+##  TODO:  <Delete> works but not <BS>
+
+vim.command( "inoremap <buffer> <Delete> <esc>:python vim_shell.delete_hook( )<CR>" )
+vim.command( "cnoremap <buffer> <Delete> <esc>:python vim_shell.delete_hook( )<CR>" )
+vim.command( "noremap  <buffer> <Delete> <esc>:python vim_shell.delete_hook( )<CR>" )
+vim.command( "inoremap <buffer> <BS>     <esc>:python vim_shell.delete_hook( )<CR>" )
+vim.command( "cnoremap <buffer> <BS>     <esc>:python vim_shell.delete_hook( )<CR>" )
+vim.command( "noremap  <buffer> <BS>     <esc>:python vim_shell.delete_hook( )<CR>" )
 
 if use_pty:
     vim_shell.read( cur )
