@@ -6,8 +6,8 @@
 # author:   brian m sturk   bsturk@nh.ultranet.com,
 #                           http://www.nh.ultranet.com/~bsturk
 # created:  12/02/01
-# last_mod: 12/21/01
-# version:  0.10
+# last_mod: 03/08/02
+# version:  0.11
 #
 # usage, etc:   see vimsh.readme
 # history:      see ChangeLog
@@ -106,7 +106,7 @@ class vimsh:
                             break;           ##  out of for loop
 
                 except KeyboardInterrupt:
-                    self.interrupt( )
+                    self.signal( signal.SIGINT, 'SIGINT' )
 
                 except:
                     dbg_print ( "read: Unexpected error:" + str( sys.exc_info( )[0] ) )
@@ -166,7 +166,7 @@ class vimsh:
             return print_lines
 
         except KeyboardInterrupt:
-            self.interrupt( )
+            self.signal( signal.SIGINT, 'SIGINT' )
 
 ################################################################################
 
@@ -217,7 +217,7 @@ class vimsh:
                 dbg_print( "print_lines: Saving cursor location: line %d row %d " % ( self.prompt_line, self.prompt_cursor ) )
 
         except KeyboardInterrupt:
-            self.interrupt( )
+            self.signal( signal.SIGINT, 'SIGINT' )
                 
 ################################################################################
 
@@ -350,7 +350,7 @@ class vimsh:
             ##  until interrupted
 
             dbg_print( "end_exe_line: Cmd interrupted while reading" )
-            self.interrupt( )
+            self.signal( signal.SIGINT, 'SIGINT' )
 
             ret = -1
 
@@ -577,7 +577,7 @@ class vimsh:
 
 ################################################################################
 
-    def interrupt( self ):
+    def signal( self, signal, signal_name ):
 
         if not self.using_pty:     ##  these types of cmds only work on pty
             return
@@ -589,7 +589,7 @@ class vimsh:
         procs_in_this_pty = procs_in_pty( self.cur_pty )
 
         num_found = len( procs_in_this_pty )
-        dbg_print ( "interrupt: Number procs found is " + `num_found` )
+        dbg_print ( "signal: Number procs found is " + `num_found` )
 
         pid_to_signal = 0
 
@@ -612,7 +612,7 @@ class vimsh:
                     print key, procs_in_this_pty[ key ]
 
                     try:
-                        vim.command( 'let choice = input( "Enter which pid to send SIGINT ? " )' )
+                        vim.command( 'let choice = input( "Enter which pid to send ' + signal_name + ' ? " )' )
 
                     except KeyboardInterrupt:
                         return
@@ -629,19 +629,29 @@ class vimsh:
                         pid_to_signal = choice
            
             dbg_print( "\\n" )
-            dbg_print( "interrupt: Sending SIGINT to pid " + pid_to_signal )
+            dbg_print( "signal: Sending " + signal_name + " to pid " + pid_to_signal )
 
-            os.kill( int( pid_to_signal ), signal.SIGINT )
+            os.kill( int( pid_to_signal ), signal )
 
             ##  read anything that's left on stdout
 
-            dbg_print( "interrupt: Reading what's left" )
+            dbg_print( "signal: Reading what's left" )
             self.read( cur )
 
             vim.command( "normal G$" )
             vim.command( "startinsert" )
 
         print ""
+
+################################################################################
+
+    def send_eof( self ):
+
+        ##  TODO:  Assumption is that EOF is mapped to Ctrl-D
+        ##         use stty or whatever to get the key it's assigned
+        ##         to, or find a more robust way to do this.
+
+        self.execute_cmd( '', _null_terminate = 0 )
 
 ################################################################################
 ##                           Helper functions                                 ##
@@ -731,7 +741,7 @@ def new_buf( ):
             vim.command( "inoremap <buffer> <CR>  <esc>:python vim_shell.execute_cmd( )<CR>" )
             vim.command( "au BufWipeout vim_shell <esc>:python vim_shell.cleanup( )<CR>" )
 
-            vim.command( 'inoremap <buffer> <C-c> <esc>:python vim_shell.interrupt( )<CR>' )
+            vim.command( 'inoremap <buffer> <C-c> <esc>:python vim_shell.signal( signal.SIGINT, "SIGINT" )<CR>' )
             vim.command( 'nnoremap <buffer> <C-c> :python vim_shell.interrupt( )<CR>' )
 
             vim.command( 'inoremap <buffer> ' + timeout_key + ' <esc>:python vim_shell.set_timeout( )<CR>' )
@@ -742,6 +752,9 @@ def new_buf( ):
 
             vim.command( 'inoremap <buffer> ' + page_output_key + ' <esc>:python vim_shell.page_output( )<CR>' )
             vim.command( 'nnoremap <buffer> ' + page_output_key + ' :python vim_shell.page_output( )<CR>' )
+
+            vim.command( 'inoremap <buffer> ' + eof_signal_key + ' <esc>:python vim_shell.send_eof( )<CR>' )
+            vim.command( 'nnoremap <buffer> ' + eof_signal_key + ' :python vim_shell.send_eof( )<CR>' )
 
             ##  TODO:  Get this working to eliminate need for separate .vim file
             ##  NOTE:  None of the below works... according to a vim developer
@@ -842,7 +855,8 @@ split_open = test_and_set( "g:vimsh_split_open", "1" )
 
 timeout_key = test_and_set( "g:vimsh_timeout_key", "<F3>" )
 
-##  Create a new prompt at the bottom of the buffer, useful if stuck
+##  Create a new prompt at the bottom of the buffer, useful if stuck.
+##  Please try to give me a bug report of how you got stuck if possible.
 
 new_prompt_key = test_and_set( "g:vimsh_new_prompt_key", "<F4>" )
 
@@ -851,6 +865,11 @@ new_prompt_key = test_and_set( "g:vimsh_new_prompt_key", "<F4>" )
 ##  spitting out prompts.
 
 page_output_key = test_and_set( "g:vimsh_page_output_key", "<F5>" )
+
+##  Send a process EOF (usually control-D) python needs it to
+##  quit interactive shell.
+
+eof_signal_key = test_and_set( "g:vimsh_eof_key", "<C-d>" )
 
 ############################ end customization #################################
 

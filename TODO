@@ -1,4 +1,4 @@
-* Fix BSD exit hang
+* Fix occasional exit hang
 
 * How to handle stderr inline with stdout? popen4?
 

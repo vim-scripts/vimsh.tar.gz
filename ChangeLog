@@ -13,7 +13,8 @@
 
     12/06/01 - 0.3a 
                       * Fixed the first line issue
-                      * Fixed the printed s
+                      * Fixed the printed 
+s
 
     12/07/01 - 0.4a
                       * Implemented clear, exit, and can now alternate between
@@ -90,3 +91,13 @@
                         from within a python script.  This file will also allow
                         users to add it to their plugin directory ( although
                         it is highly unrecommended )
+
+    03/08/02 - 0.11
+                      * Added support for sending EOF. Default
+                        mapping is Ctrl-D (C-d>.  Now you can run python
+                        for example in a buffer and quit it by typing
+                        Ctrl-D.
+                      * Fixed snafu of line split in the middle of python
+                        statement which kept script from loading.  WHOOPS.
+                      * Made the signalling mechanism more generic so I can
+                        add more handlers in the future.
