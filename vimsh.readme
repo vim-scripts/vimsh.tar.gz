@@ -94,7 +94,16 @@
 
         The best support and formatting.  Most unix platforms support ptys.
         You can run interactive line based commands like ftp, telnet, rm,
-        ping, cp, ssh, etc.
+        ping, cp, ssh, etc.  
+        
+        Only current limitation is involving commands that have
+        continuous output (ping) or slow commands (ftp). You will need
+        to use the refresh key (F5, remappable) to see output sometimes.
+        I've tried everything I can possibly think of to try and get it
+        to work but nothing has. See vimsh.vim for what's been tried,
+        I'm open to suggestions. If vim ever gets an idle processing
+        function, akin to CursorHold, but without the limitations, this
+        will work properly.
 
     popen:
 

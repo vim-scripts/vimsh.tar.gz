@@ -6,8 +6,8 @@
 # author:   brian m sturk   bsturk@nh.ultranet.com,
 #                           http://www.nh.ultranet.com/~bsturk
 # created:  12/02/01
-# last_mod: 04/04/02
-# version:  0.12
+# last_mod: 04/11/02
+# version:  0.13
 #
 # usage, etc:   see vimsh.readme
 # history:      see ChangeLog
@@ -65,8 +65,8 @@ class vimsh:
                               r'^\s*\bssh\b',           ##  ssh
                               r'^\s*\bpython\b' ]       ##  python ( -u too ATM )
 
-        self.last_cmd_executed  = "foobar"
-        self.keyboard_interrupt = 0
+        self.last_cmd_executed     = "foobar"
+        self.keyboard_interrupt    = 0
 
 ################################################################################
 
@@ -133,13 +133,14 @@ class vimsh:
 
             if self.pid == 0:
 
-                ##  in spawned shell process
+                ##  In spawned shell process
 
                 attrs = tty.tcgetattr( 1 )
                 attrs[6][tty.VMIN]  = 1
                 attrs[6][tty.VTIME] = 0
                 attrs[0] = attrs[0] | tty.BRKINT
                 attrs[3] = attrs[3] & ~tty.ICANON & ~tty.ECHO
+
                 tty.tcsetattr( 1, tty.TCSANOW, attrs )
 
                 os.execv( self.sh, [ self.sh, self.arg ] )
@@ -149,7 +150,7 @@ class vimsh:
                 attrs = tty.tcgetattr( 1 )
                 termios_keys = attrs[ 6 ]
 
-                ##  get *real* key-sequence for standard input keys, i.e. EOF
+                ##  Get *real* key-sequence for standard input keys, i.e. EOF
 
                 self.eof_key   = termios_keys[ tty.VEOF ]
                 self.eol_key   = termios_keys[ tty.VEOL ]
@@ -167,9 +168,6 @@ class vimsh:
 
             self.stdout, self.stdin, self.stderr = popen2.popen3( self.sh + " " + self.arg, bufsize = -1  )
 
-            #import win32pipe       #  no better :(
-            #self.stdin, self.stdout, self.stderr = win32pipe.popen3( self.sh + " " + self.arg )
-
             self.outd = self.stdout.fileno( )
             self.ind  = self.stdin.fileno ( )
             self.errd = self.stderr.fileno( )
@@ -184,18 +182,20 @@ class vimsh:
         if self.keyboard_interrupt:
             dbg_print( 'execute_cmd: keyboard interrupt earlier, cleaning up' )
 
-            self.page_output()
+            self.page_output( 1 )
             self.keyboard_interrupt = 0
+
+            return
 
         ##  This is the main worker function
 
         try:
-            print ""            ## clears the ex command window
+            print ""            ## Clears the ex command window
 
             cur = vim.current.buffer
             cur_line, cur_row = self.get_vim_cursor_pos( )
 
-            if _cmd == None:            ##  grab it, current line in buffer
+            if _cmd == None:            ##  Grab it, current line in buffer
                 if cur_line == self.prompt_line and cur_row >= self.prompt_cursor:
                     whole_line = cur[ cur_line - 1 ]
                     _cmd = whole_line[ self.prompt_cursor: ]
@@ -209,21 +209,23 @@ class vimsh:
             if re.search( r'^\s*\bexit\b', _cmd ):
                 dbg_print ( 'execute_cmd: Matched exit' )
 
-                num_procs = 1       ##  default, for windows since no interactive
+                num_procs = 1       ##  Default, for windows since no interactive
 
                 if self.using_pty:
-                    num_procs = procs_in_pty( self.cur_pty )
+                    num_procs = len( procs_in_pty( self.cur_pty ) )
+
+                dbg_print( 'execute_cmd: num procs is ' + str( num_procs ) )
 
                 if num_procs == 1: 
-                    self.cleanup( )
-                    vim.command( "bd!" )
+
+                    vim.command( "bdelete vimsh" )
 
                     return
 
             if re.search( r'^\s*\bclear\b', _cmd ):
                 dbg_print ( 'execute_cmd: Matched clear' )
 
-                self.write( "" + "\n" )    ##   new prompt
+                self.write( "" + "\n" )    ##   New prompt
 
                 if clear_all:
                     vim.command( "normal ggdG" )
@@ -235,7 +237,7 @@ class vimsh:
 
             else:
 
-                ##  first check for interactive commands under windows
+                ##  First check for interactive commands under windows
 
                 if sys.platform == 'win32':
 
@@ -250,13 +252,14 @@ class vimsh:
                             vim.command( 'let continue = input( "The console version of ' + m.group( 0 ) + ' is unsupported on Windows.  Continue anyway? y/n " )' )
                             exe_it = vim.eval( "continue" )
 
-                            print ""            ## clears the ex command window
+                            print ""            ##  Clears the ex command window
 
                             if( string.upper( exe_it ) != 'Y' ):
                                 dbg_print( 'execute_cmd: Unsupported and not-executing' )
 
                                 vim.command( "normal G$" )
                                 vim.command( "startinsert" )
+
                                 return
 
                 if _null_terminate:
@@ -285,7 +288,7 @@ class vimsh:
 
     def end_exe_line ( self ):
 
-        ##  read anything that's left on stdout
+        ##  Read anything that's left on stdout
 
         cur = vim.current.buffer
 
@@ -322,7 +325,11 @@ class vimsh:
             else:
                 r = [1,]  ##  pipes, unused, fake it out so I don't have to special case
 
+            dbg_print( 'read: select has returned' )
+
             for file_iter in r:
+
+                dbg_print( 'read: there\'s data to read' )
 
                 lines = ''
 
@@ -335,8 +342,8 @@ class vimsh:
                 if lines == '':
                     dbg_print( 'read: No more data on stdout pipe_read' )
 
-                    r = [];          ##  signal end of data to read
-                    break;           ##  out of for loop
+                    r = []          ##  Sentinel, end of data to read
+                    break
 
                 num_iterations += 1
 
@@ -351,7 +358,7 @@ class vimsh:
                     vim.command( 'call VimShRedraw()' )
 
             if r == []:
-                dbg_print( 'read: end of data to self.read()' );
+                dbg_print( 'read: end of data to self.read()' )
                 self.end_read( _buffer )
                 break
 
@@ -359,7 +366,8 @@ class vimsh:
 
     def process_read( self, _lines ):
 
-        dbg_print( 'process_read: Raw lines read from stdout:' ); dbg_print( _lines )
+        dbg_print( 'process_read: Raw lines read from stdout:' )
+        dbg_print( _lines )
 
         lines_to_print = string.split( _lines, '\n' )
 
@@ -374,7 +382,7 @@ class vimsh:
 
         num_lines = len( lines_to_print )
 
-        ##  split on '\n' sometimes returns n + 1 entries
+        ##  Split on '\n' sometimes returns n + 1 entries
 
         if num_lines > 1:
             last_line = lines_to_print[ num_lines - 1 ].strip( )
@@ -408,11 +416,7 @@ class vimsh:
 
                 dbg_print( 'print_lines: removing trailing ^M' )
 
-                #  neither of these remove the trailing \n why??
-                #   line_iter.strip( )          
-                #   re.sub( "\n", "", line_iter )
-
-                line_iter = line_iter[ :-1 ]   # force it
+                line_iter = line_iter[ :-1 ]   #  Force it
 
             ##  Jump to the position of the last insertion to the buffer
             ##  if it was a new line it should be 1, if it wasn't
@@ -426,7 +430,7 @@ class vimsh:
             dbg_print( 'print_lines: Pasting ' + line_iter + ' to current line' )
             _buffer[ cur_line - 1 ] += line_iter
 
-            ##  if there's a '\n' or using pipes and it's not the last line
+            ##  If there's a '\n' or using pipes and it's not the last line
 
             if not self.using_pty or m != None:
 
@@ -453,13 +457,13 @@ class vimsh:
                 _buffer[ cur_line - 1 ] = self.pipe_prompt 
 
             else:
-                ##  remove last line for last read, TODO: any better way to do this?
+                ##  Remove last line for last read, TODO: any better way to do this?
 
                 vim.command( 'normal dd' )
         
         vim.command( "normal G$" )
 
-        ##  tuck away location, all data read is in buffer
+        ##  Tuck away location, all data read is in buffer
 
         self.prompt_line, self.prompt_cursor = self.get_vim_cursor_pos( )
 
@@ -537,13 +541,30 @@ class vimsh:
 
 ################################################################################
 
-    def page_output( self ):
+    def page_output( self, _add_new_line = 0 ):
+
+        dbg_print( 'page_output: enter' )
 
         try:
-            self.end_exe_line()
+
+            ##  read anything that's left on stdout
+
+            cur = vim.current.buffer
+
+            if _add_new_line :
+
+                cur.append( "" )
+                vim.command( "normal G$" )
+
+            self.read( cur )
+
+            self.check_for_passwd( )
 
             vim.command( "startinsert" )
-        except:
+
+        except KeyboardInterrupt:
+
+            dbg_print( 'page_output: exception' )
             pass
 
 ################################################################################
@@ -616,18 +637,82 @@ class vimsh:
     def send_intr( self ):
 
         if show_workaround_msgs:
-            print 'If you do NOT see a prompt, go into insert mode and press Enter, or press F4 for a new prompt'
+            print 'If you do NOT see a prompt in the vimsh buffer, press F5 or go into insert mode and press Enter, if you need a new prompt press F4'
             print 'NOTE: To disable this help message set \'vimsh_show_workaround_msgs\' to 0 in your .vimrc'
 
-        self.write( self.intr_key )
+        dbg_print( 'send_intr: enter' )
 
-        self.page_output( )
+        ##  This triggers another KeyboardInterrupt async
+
+        try:
+            dbg_print( 'send_intr: writing intr_key' )
+            self.write( self.intr_key )
+
+            dbg_print( 'send_intr: calling page_output' )
+            self.page_output( 1 )
+
+            ##  Hack city, doesn't always work either
+            #print ' sending carriage return'
+            #vim.command( 'let foo = remote_send( v:servername, "<esc>:<CR>" )' )
+
+        except KeyboardInterrupt:
+
+            dbg_print( 'send_intr: caught KeyboardInterrupt in send_intr' )
+            pass
 
 ################################################################################
 
     def send_eof( self ):
 
-        self.write( self.eof_key )
+        dbg_print( 'send_eof: enter' )
+
+        try:
+            dbg_print( 'send_eof: writing eof_key' )
+            self.write( self.eof_key )
+
+            dbg_print( 'send_eof: calling page_output' )
+            self.page_output( 1 )
+
+        except KeyboardInterrupt:
+            dbg_print( 'send_eof: caught KeyboardInterrupt in send_eof' )
+            pass
+
+################################################################################
+        
+    def thread_worker( self ):
+
+        ##  **** Currently unused as it has nasty side effects. ****
+
+        #import thread
+
+        self.idle = 0
+        #thread.start_new_thread( self.thread_worker,( ) )
+
+        try:
+            while 1:
+
+                if self.idle:
+                    r, w, e = select.select( [ self.outd ], [], [], .5 )
+
+                    if r != []:
+
+                        ##  signal vim to come do a read, doesn't
+                        ##  work.  Vim can't seem to handle anything
+                        ##  coming from another thread.
+
+                        ##  vim.command( 'call VimShReadUpdate()' )
+
+                        ##  interestingly this sorta works
+                        ##      gvim --remote-send "<esc>:python vim_shell.page_output(0)<CR>"
+
+                        ##  vim.command( 'let dummy = remote_send( v:servername, "<esc>:call VimShReadUpdate()<cr>" )' )
+                        ##  
+                        ##  see vimsh.vim for why it's not included
+
+                        dbg_print( 'thread_worker: shouldn\'t be seeing this' )
+
+        except KeyboardInterrupt:                        
+            self.send_intr()
 
 ################################################################################
 ##                           Helper functions                                 ##
@@ -653,7 +738,7 @@ def procs_in_pty( pty_num ):
 
     procs_in_this_pty = {}
 
-    ##  hopefully the aux flags are usable on all *nix platforms
+    ##  Hopefully the aux flags are usable on all *nix platforms
 
     output = os.popen( 'ps aux','r' ).readlines( )
 
@@ -674,8 +759,10 @@ def dump_str_as_hex( _str ):
 
     hex_str = ''
 
+    print 'length of string is ' + str( len( _str ) )
+
     for x in range( 0, len( _str ) ):
-         hex_str = hex_str + hex( ord( _str[x] ) ) + "\n"
+        hex_str = hex_str + hex( ord( _str[x] ) ) + "\n"
 
     print 'raw line ( hex ) is:'
     print hex_str
@@ -691,10 +778,10 @@ def dbg_print( _str ):
 
 def new_buf( ):
 
-    ##  If a buffer named vim_shell doesn't exist create it, if it
+    ##  If a buffer named vimsh doesn't exist create it, if it
     ##  does, switch to it.  Use the config options for splitting etc.
 
-    filename = "vim_shell"
+    filename = "vimsh"
 
     try:
         vim.command( 'let dummy = buflisted( "' + filename + '" )' )
@@ -703,9 +790,9 @@ def new_buf( ):
         if exists == '0':
 
             if split_open:
-                vim.command( "new vim_shell" )
+                vim.command( "new " + filename )
             else:
-                vim.command( "edit vim_shell" )
+                vim.command( "edit " + filename )
 
             vim.command( "setlocal buftype=nofile" )
             vim.command( "setlocal tabstop=8" )
