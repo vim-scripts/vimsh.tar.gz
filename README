@@ -1,0 +1,34 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=165
+
+A terminal/shell buffer script for python enabled [g]vim (+python).  Allows execution of shell commands in a vim buffer.
+It does not use r! <cmd>.  
+
+Some of it's features:
+
+* It retains state because it's interactive.  Set an environment variable and it "stays" because the shell process is the same through the whole session.
+* It can run interactive line based programs like ftp/telnet/python/ssh/etc including masked password input (pty supported platform only).
+* Since it's a vim buffer you can go into normal mode and move around the buffer, yank, paste, use word completion, etc.
+* Runs on Linux, OS X, Windows, and other UNIX platforms.  Primary development and testing is done on Linux.  Windows has limitations (no interactive programs or Ctrl-C) due to lack of pty support.
+       
+Requirements:
+To use it you must have a python enabled [g]vim and run on a platform that supports pty (i.e. Linux, OS X),
+or pipes (Windows). The pty version has much better formatted output than the pipes
+version and supports running interactive programs.  Please read the README for other installation
+and configuration details.  Tested on vim 6.0/7.x using Slackware, Ubuntu, and Gentoo Linux, FreeBSD, Mac OS X, and Windows XP/Vista.  
+
+I'd also like to hear from users running other operating systems, i.e. QNX/Solaris/other BSDs.
+
+!!!!! WINDOWS USERS !!!!!, there is a zip file available at the below link. The version
+kept here on vimonline is a tarred, gzipped file ( tar.gz ). If you are going to use
+Winzip with the .tar.gz file be sure to turn off the "Tar file smart CR/LF handling". It doesn't work
+well.
+
+Please send me bug reports and suggestions if you use it.  I appreciate all the patches
+I've been getting lately!
+
+Visit:
+
+    http://home.comcast.net/~bsturk/vim.html
+
+See "terminal buffer" for more information.  There is also a (old) screenshot
+of it running on Slackware Linux and Vim 6.0.
