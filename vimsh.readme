@@ -20,7 +20,7 @@
     requirements summary:
 
         python enabled vim ( +python )
-        operating system that supports pty (Unix) -or- popen (Windows)
+        operating system that supports pty (unix) -or- popen/pipes (Windows)
         python 2.2 or higher, may work with 2.0 or higher, but not tested
 
     requirements in detail:
@@ -35,10 +35,12 @@
 
     I have tested vimsh on the following configurations:
 
-        vim 6.0 p93 / slackware linux 8.0 / Python 2.2b2
+        vim 6.0 p93 / Slackware Linux 8.0 / python 2.2b2
         vim 6.0 p93 / WinNT 4.0 / Activestate Python 2.2
+        vim 6.0 p93 / Win2K     / Standard Python 2.2
+        vim 6.0 p48 / FreeBSD 4.6 / python 2.2
 
-    The pty library is 'unsupported' by Python on some platforms
+    The pty library is 'unsupported' by python on some platforms
     but I have received reports of success on these platforms
     in addition to the ones I have tested on:
 
@@ -48,9 +50,9 @@
 
 :: running vimsh ::
 
-    You can run vimsh by either sourcing the file vimsh.vim 
-    on the ex command line like this assuming you are in the 
-    directory that vimsh.vim is located:
+    You can run vimsh by sourcing the file vimsh.vim on the ex 
+    command line like this assuming you are in the directory that
+    vimsh.vim is located:
 
         :source vimsh.vim
 
@@ -112,7 +114,8 @@
 
             dir, findstr, type, attrib, set, ping, etc.  
             
-            Interactive programs like ftp, telnet, ssh will *not* work.
+            Interactive programs like ftp, telnet, ssh will *not* work
+            correctly.
 
         This is because these programs seem to use buffered output or write
         directly to the console using the Windows Console API.  Unfortunately,
@@ -122,7 +125,7 @@
         Also commands that wait on standard input currently cannot
         be interrupted w/ ctrl-c.  i.e. running 'findstr foo', since
         there is no file spec the command will wait and hang the shell
-        session within vim.
+        session within vim.  Just delete the buffer if this happens (:bd).
 
 :: vimsh customization ::
 
@@ -132,15 +135,14 @@
 
     Here are some examples of how it would look in a .vimrc:
 
-          let g:vimsh_prompt_override = 1
-          let g:vimsh_prompt_pty      = "%m%#"
-          let g:vimsh_split_open      = 0
-          let g:vimsh_sh              = "/bin/zsh"
+          let g:vimsh_prompt_override = 1               ##  will not use normal prompt from your 'real' shell
+          let g:vimsh_prompt_pty      = "%m%#"          ##  specify overriden prompt
+          let g:vimsh_split_open      = 0               ##  run vimsh in the current buffer
+          let g:vimsh_sh              = "/bin/zsh"      ##  shell to run within vimsh
 
     The list of variables was getting too long and that meant I had to duplicate
-    what was already in vimsh.py in this file, so please read vimsh.py
-    for variables that can be customized.  Look for the section in the file
-    labeled 'customization'.
+    what was already in vimsh.py in this file, so please read vimsh.py for variables 
+    that can be customized.  Look for the section in the file labeled 'customization'.
 
 :: vimsh notes ::
 
@@ -156,7 +158,7 @@
 
 :: vimsh help ::
 
-    Feel free to email me (bsturk@nh.ultranet.com) with issues regarding    
+    Feel free to email me (bsturk@adelphia.net) with issues regarding    
     vimsh or if you've found a bug etc.  Please read this file, the          
     ChangeLog, and the TODO to see if I already know about the issue, or    
     is a known limitation before contacting me.  If you do email me please   
@@ -167,7 +169,7 @@
 :: vimsh info ::
 
     The latest version is always available @
-         http://www.nh.ultranet.com/~bsturk/vim.html
+         http://users.adelphia.net/~bsturk/vim.html
        
     Please send bug reports, suggestions, and other email to
-        bsturk@nh.ultranet.com.
+        bsturk@adelphia.net

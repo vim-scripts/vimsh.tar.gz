@@ -13,7 +13,7 @@
 
 * new <buffer> uses existing one.  Currently can only be used once.
 
-* Handle ( syntax hi ) ansi escape sequences ( colored prompts, LS_COLORS )
+* Handle ( syntax hi ) ansi escape sequences ( colored prompts, LS_COLORS ).
 
 * How can I use regex to determine syntax but hide/remove
   the escape codes?  Can be folding done within 1 line?
@@ -22,6 +22,11 @@
   i.e. GDB run in terminal buffer, script hooks write read etc parses
   output, and uses glyph to highlight current line, for example.
 
-* Support vim/python native to 'cygwin', cygwin seems to support select
+* Support vim/python native to 'cygwin', cygwin seems to support select.
 
-* Add some PS1 type flags for built in prompt.
+* Ctrl-D/EOF not working on BSD for /bin/sh, verify still working on Linux (bash).
+
+* Fix handling of ctrl-d, needs to do a bdelete.  Put proper checking of
+  exiting flag after sigchld to avoid exceptions.
+
+* Handle textwidth appropriately as well as multiple line commands.

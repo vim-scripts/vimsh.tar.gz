@@ -2,7 +2,7 @@
     =========
 
     This file contains a listing of modifications to vimsh.
-    Dates are included.  All changes by <bsturk@nh.ultranet.com> unless
+    Dates are included.  All changes by <bsturk@adelphia.net> unless
     noted.
 
     12/05/01 - 0.2a
@@ -145,23 +145,65 @@
                         use the vimsh.zip file available at my website.
                       * Fixed 'exit' of shell killing entire vim session rather
                         than just the vimsh buffer.
-                      * Fixed empty line being added after paging output (default F5)
-                      * Now check for password prompt when paging slow output (default F5).
+                      * Fixed empty line being added after paging output (F5)
+                      * Now check for password prompt when paging slow output(F5).
                       * Cleanup of filename handling
                       * Removed some un-needed ';' characters at the end of
                         lines ( this is what happens when you do C all day )
                       * Removed duplicate sending of EOF in send_eof.
                       * Fixed pty/# of proc detection
 
-    05/09/02 - 0.14
-                      * Changed name of buffer name from vimsh to _vimsh_ since this
-                        script is usually placed in a directory called vimsh.
-                        If vimsh was a directory in vim's cwd it would edit
-                        the directory using the explorer plugin.
-                      * Fixed procs_in_pty to return full name of command last executed.
-                      * Fixed not going back to insert mode after changing timeout.
-                      * Added current timeout to timeout prompt.
-                      * Correctly handle bogus entered timeout values, like 'ls'.
-                      * Added support routine to return the current mode.
-                      * Added a support routine to determine if last command
+    04/28/02 - 0.14
+
+                      * Changed name of buffer name from vimsh to _vimsh_ since this 
+                        script is usually placed in a directory called vimsh. 
+                        If vimsh was a directory in vim's cwd it would edit 
+                        the directory using the explorer plugin. 
+                      * Fixed procs_in_pty to return full name of command last executed. 
+                      * Fixed not going back to insert mode after changing timeout. 
+                      * Added current timeout to timeout prompt. 
+                      * Correctly handle bogus entered timeout values, like 'ls'. 
+                      * Added support routine to return the current mode. 
+                      * Added a support routine to determine if last command 
                         executed is still running.
+
+    09/30/02 - 0.15 
+                      * Changed handling of default prompt (when vimsh_prompt_pty
+                        is not defined and vimsh_prompt_override is 1).  Made it 
+                        simpler and removed assumptions about which shell is being 
+                        used on certain platforms.
+                      * Fixed the bdelete on exit line to use the new _vimsh_.
+                      * Removed checks for running interactive programs on windows.  
+                        It made the code messier and there are plenty of interactive 
+                        programs that weren't in the regex list.
+                      * Removed all the code related to a user supplied pipe prompt.
+                        I have yet to find a platform that needs it.
+                      * Added a password regex for ssh.  NOTE when ssh'ing the
+                        prompt on the remote machine may not be printed
+                        correctly if it has ANSI escape sequences etc.
+                      * Changed 'exit' handling to use SIGCHLD, much cleaner
+                        and correct, also removes the need for detecting pty
+                        name which was different on every platform.
+                      * Fixed logic for vimsh_split_open, it was backwards.
+                      * Fix handling of numerical config options.  Checks on
+                        it must be against strings.  i.e. '0' or '1'.
+                      * Made note in config section about overriding prompt
+                        using [t]csh.
+                      * Fixed handling of shell spawn when there are no args
+                        to shell. i.e. '' instead of '-i'.
+                      * Fixed deleting of line when refreshing output on non-pty
+                        platform.
+                      * typing 'exit' within vimsh or doing a bdelete on a
+                        vimsh buffer now cleans up properly.
+                      * Added wait() to SIGCHLD handler to properly clean up
+                        (no zombies).
+                      * Added cls for Windows clearing of buffer.
+                      * Fixed clear/cls handling.  'clear' or 'cls' is no longer also sent
+                        to the shell which caused some control codes to be
+                        read from terminal.
+                      * Fixed a vim hang when using pipes and binary data 'corrupts'
+                        pipe.  Changed pipe type to 'b' (binary) from 't' (text).
+                      * Added a dump routine for all terminal settings.
+                      * Changed the textwidth to a large number to support
+                        long lines.  This is temporary until I support real
+                        multiple line commands.

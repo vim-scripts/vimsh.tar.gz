@@ -1,8 +1,8 @@
 " file:     vimsh.vim
 " purpose:  support file for vimsh, when sourced starts a vimsh buffer
 "
-" author:   brian m sturk   bsturk@nh.ultranet.com,
-"                           http://www.nh.ultranet.com/~bsturk
+" author:   brian m sturk   bsturk@adelphia.net,
+"                           http://users.adelphia.net/~bsturk
 " created:  12/20/01
 " last_mod: 04/11/02
 " version:  see vimsh.py
