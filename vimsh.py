@@ -6,8 +6,8 @@
 # author:   brian m sturk   bsturk@adelphia.net,
 #                           http://users.adelphia.net/~bsturk
 # created:  12/02/01
-# last_mod: 01/31/04
-# version:  0.18
+# last_mod: 03/20/04
+# version:  0.19
 #
 # usage, etc:   see vimsh.readme
 # history:      see ChangeLog
@@ -17,8 +17,9 @@
 
 import vim, sys, os, string, signal, re, time
 
-##  If you're having a problem running vimsh, please
-##  change the 0 to a 1 and send me an email of the output.
+##  NOTE: If you're having a problem running vimsh, please
+##        change the 0 to a 1 for _DEBUG_ and send me an email
+##        of the output.
 
 _DEBUG_   = 0
 _BUFFERS_ = []
@@ -199,7 +200,7 @@ class vimsh:
             if re.search( r'^\s*\bclear\b', _cmd[0] ) or re.search( r'^\s*\bcls\b', _cmd[0] ):
                 dbg_print ( 'execute_cmd: Matched clear' )
 
-                clear_screen()
+                self.clear_screen( False )
 
             elif self.shell_exited or re.search( r'^\s*\exit\b', _cmd[0] ):
 
@@ -427,7 +428,7 @@ class vimsh:
 
     def pipe_read( self, pipe, minimum_to_read ):
 
-        ##  Hackaround since Windows doesn't support select( ) except for sockets.
+        ##  Hackaround since Windows doesn't support select() except for sockets.
 
         dbg_print( 'pipe_read: minimum to read is ' + str( minimum_to_read ) )
         dbg_print( 'pipe_read: sleeping for ' + str( self.delay ) + ' seconds' )
@@ -533,7 +534,7 @@ class vimsh:
 
             self.check_for_passwd()
 
-            self.startinsert()
+            self.startinsert( False )
 
         except KeyboardInterrupt:
 
@@ -569,8 +570,9 @@ class vimsh:
 
 ################################################################################
 
-    def clear_screen( self ):
+    def clear_screen( self, in_insert_mode ):
 
+        dbg_print( 'startinsert: insert mode is ' + str( in_insert_mode )  )
         self.write( "" + "\n" )    ##   new prompt
 
         if clear_all == '1':
@@ -580,6 +582,9 @@ class vimsh:
 
         if clear_all == '0':
             vim.command( "normal zt" )
+
+        if in_insert_mode:
+            self.startinsert()
 
 ################################################################################
 
@@ -599,11 +604,11 @@ class vimsh:
 
 ################################################################################
 
-    def startinsert( self ):
+    def startinsert( self, add_space = True ):
 
         cur_line, cur_row = self.get_vim_cursor_pos()
 
-        if self.buffer[cur_line - 1] == '':
+        if self.buffer[cur_line - 1] == '' and add_space == True:
 
             # :startinsert! on an empty line starts at column 1, which is
             # where $ takes us. This is an exception and messes things up.
@@ -947,8 +952,8 @@ def new_buf( _filename ):
             vim.command( 'inoremap <buffer> ' + intr_signal_key + ' <ESC>:python lookup_buf ( "' + filename + '" ).send_intr()<CR>' )
             vim.command( 'nnoremap <buffer> ' + intr_signal_key + ' :python lookup_buf( "' + filename + '" ).send_intr()<CR>' )
 
-            vim.command( 'inoremap <buffer> ' + clear_key + ' <ESC>:python lookup_buf ( "' + filename + '" ).clear_screen()<CR>')
-            vim.command( 'nnoremap <buffer> ' + clear_key + ' :python lookup_buf( "' + filename + '").clear_screen()<CR>' )
+            vim.command( 'inoremap <buffer> ' + clear_key + ' <ESC>:python lookup_buf ( "' + filename + '" ).clear_screen( True )<CR>')
+            vim.command( 'nnoremap <buffer> ' + clear_key + ' :python lookup_buf( "' + filename + '").clear_screen( False )<CR>' )
 
             ##  TODO:  Get this working to eliminate need for separate .vim file
             ##  NOTE:  None of the below works... according to a vim developer
@@ -1135,7 +1140,7 @@ eof_signal_key = test_and_set( "g:vimsh_eof_key", "<C-d>" )
 
 ##  Clear screen
 
-clear_key = test_and_set( "g:vimsh_clear_key", "<F9>" )
+clear_key = test_and_set( "g:vimsh_clear_key", "<C-l>" )
 
 ############################ end customization #################################
 

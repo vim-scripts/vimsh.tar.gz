@@ -207,6 +207,7 @@
                       * Changed the textwidth to a large number to support
                         long lines.  This is temporary until I support real
                         multiple line commands.
+
     09/19/03 - 0.16 
                       * Changed '^M' to '\n' for python 2.3.  Vimsh would not
                         run w/ python 2.3. Backwards compatible change.
@@ -216,15 +217,15 @@
                         i.e. :VimShNewBuf foo
                       * Default behavior of creating a single vimsh buffer
                         when sourced added to multiple buffer patch.
-                      * Multi-line command support <ddarius@hotpop.com>
-		              * made a clear screen routine honoring g:vimsh_clear_all
-		              * clear screen key mapping g:vimsh_clear_key (default F9) <ddarius@hotpop.com>
-                      * use startinsert! <ddarius@hotpop.com>
+                      * Multi-line command support. <ddarius@hotpop.com>
+		              * made a clear screen routine honoring g:vimsh_clear_all.
+		              * clear screen key mapping g:vimsh_clear_key (default F9). <ddarius@hotpop.com>
+                      * use startinsert!. <ddarius@hotpop.com>
 
      1/31/04 - 0.18 
-                      * Use waitpid rather than wait, now correctly handles :!cmd <mbays@sdf.lonestar.org>
-                      * Run pyfile command once when sourcing vimsh.vim <mbays@sdf.lonestar.org>
-                      * Handle programs that do not have a prompt <mbays@sdf.lonestar.org>
+                      * Use waitpid rather than wait, now correctly handles :!cmd. <mbays@sdf.lonestar.org>
+                      * Run pyfile command once when sourcing vimsh.vim. <mbays@sdf.lonestar.org>
+                      * Handle programs that do not have a prompt. <mbays@sdf.lonestar.org>
                       * Moved invocation of startup shell in vimsh.vim to outside of pyfile 
                         sourcing conditional.
                       * Fixed case where buffer deleted through autocommand and same 
@@ -232,3 +233,11 @@
                       * Fixed multiple au BufDelete commands being invoked for same vimsh buffer name
                         (multiple buf fix).
                       * Fixed password regex for ssh, now handles leading spaces if present within vimsh.
+
+     3/20/04 - 0.19   
+                      * Fixed clear_screen call.
+                      * Changed default mapping for clearing screen to ^L.
+                      * Preserve mode (insert/normal) when clearing screen.
+                      * Fix leading space in output when paging commands like
+                        ping(8).
+                      * Added some tips for [t]csh users to the readme.

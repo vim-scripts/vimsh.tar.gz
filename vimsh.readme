@@ -34,12 +34,15 @@
     Most unix variants have support for pty in one form or another
     and most other platforms, for instance Windows, support popen.
 
-    I have tested vimsh on the following configurations:
+    I have tested vimsh on the following configurations, newer releases
+    are not always tested with all platforms:
 
         vim 6.0-6.2 / Slackware Linux 8.0 / python 2.2b2, 2.2.3, 2.3.X
-        vim 6.0-6.2 / WinNT 4.0 / Activestate Python 2.2
-        vim 6.0-6.2 / Win2K     / Standard Python 2.2
-        vim 6.0-6.2 / FreeBSD 4.6-4.9 / python 2.2.X, 2.3.X
+        vim 6.0-6.2 / Gentoo Linux        / python 2.3.3
+        vim 6.0-6.2 / WinNT 4.0           / Activestate Python 2.2
+        vim 6.0-6.2 / Win2K               / Standard Python 2.2
+        vim 6.0-6.2 / WinXP               / Standard Python 2.2
+        vim 6.0-6.2 / FreeBSD 4.6-4.9     / python 2.2.X, 2.3.X
 
     The pty library is 'unsupported' by python on some platforms
     but I have received reports of success on these platforms
@@ -161,6 +164,25 @@
     setting the timeouts for reads and refreshing output.  If you don't want
     to change the timeouts you can just press Enter or F5 to check for more
     output from the command.
+
+:: vimsh tips ::
+
+    If you run tcsh or csh the following will allow you to have a better
+    environment when using vimsh.
+
+    Add these to your .vimrc:
+
+        let g:vimsh_pty_prompt_override = 0
+        let g:vimsh_sh                  = '/bin/tcsh'
+        let $VIMSH                      = 1
+
+    The $VIMSH can then be detected in your .cshrc to do special processing.
+    For instance, vimsh doesn't support ANSI escape sequences yet so I unalias
+    ls with color:
+
+        if ($?VIMSH) then 
+            unalias ls
+        endif   
 
 :: vimsh help ::
 
