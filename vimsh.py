@@ -5,35 +5,38 @@
 #
 # author:   brian m sturk ( bsturk@nh.ultranet.com )
 # created:  12/02/01
-# last_mod: 12/12/01
-# version:  0.8
+# last_mod: 12/13/01
+# version:  0.9
 #
-# usage:         from a script or ex   pyf[ile] vimsh.py
+# usage:         From a script or ex   pyf[ile] vimsh.py
 #
-# requirements:  python enabled vim
+#                An useful mapping might be:
+#                     nmap \sh           :pyf $PATHTOSCRIPT/vimsh.py<CR>
+#
+# requirements:  Python enabled vim
 #                a platform that supports pty -or- popen
 #
-# tested on:     vim 6.0 p93/slackware linux 8.0/Python 2.2b2
-#                vim 6.0 p93/WinNT 4.0/Activestate Python 2.2
-#                ( 2.1 seems to have an issue with finding termios )
+# tested on:     Vim 6.0 p93/slackware linux 8.0/Python 2.2b2
+#                Vim 6.0 p93/WinNT 4.0/Activestate Python 2.2
 #
 # license:       Use at your own risk.  I'm not responsible if
 #                it hoses your machine.  All I ask is that
 #                I'm made aware of changes and my contact
 #                info stays in the script.
 #
-# limitations:   can only execute line oriented programs, no vim
-#                within vim stuff, curses, pagers, etc.
+# limitations:   Can only execute line oriented programs, no vim
+#                within vim stuff, curses, pagers, etc.  On Windows
+#                only non-interactive programs are supported.
 # 
-# customize:     see section below "CUSTOMIZE"
+# customize:     See section below "CUSTOMIZE"
 # 
 # notes:
 #
 #   - Latest version is always available @
 #     http://www.nh.ultranet.com/~bsturk/vim.html
 #   
-#   - Please send bug reports, suggestions, and other *pleasant*
-#     email to bsturk@nh.ultranet.com.
+#   - Please send bug reports, suggestions, and other email
+#     to bsturk@nh.ultranet.com.
 #
 #   - If you like this script and vim users are allowed to vote on new
 #     features in vim again, please put in a vote for vi editing in the ex
@@ -50,25 +53,32 @@
 #     bump the timeout up.  Being conservative won't hurt.
 #     See mapping below in CUSTOMIZE.
 #
+#   - On the Windows platform, running cmd.exe for a shell doesn't need
+#     the pipe prompt.  Also, for any shell on Windows, spawned programs,
+#     i.e. ftp, telnet, cleartool seem to use buffered output or write
+#     directly to the console using the Windows Console API. Unfortunately,
+#     this means that without pty functionality for windows, these commands
+#     cannot be run in this script.
+#
 #  known issues/todo:
 #  
-#  TODO:  Allow it to use the current buffer if not-modified
 #  TODO:  new <buffer> uses existing one.  Currently can only be used once,
 #         so the buffer needs to be deleted ( bd! ).
-#  TODO:  Handle modified, and make it optional
 #  TODO:  Long commands are unresponsive, i.e. find ~  Figure out a way to
 #         print to the file and scroll the buffer as I get input.  May not
 #         be possible without returning from python code.
 #  TODO:  Handle ( syntax hi ) ansi escape sequences ( colored prompts, LS_COLORS )
 #         How can I use regex to determine syntax but hide/remove
-#         the escape codes?  Folding??
-#  TODO:  Add some PS1 type flags for built in prompt.
+#         the escape codes?  Can be folding done within 1 line?
 #  TODO:  Add hooks for write/read so scripts can ride on top of this one.
 #         i.e. GDB run in terminal buffer, script hooks write read etc parses
 #         output, and uses glyph to highlight current line, for example.
 #  TODO:  Support vim/python native to 'cygwin', cygwin seems to support select
-#  TODO:  Spawning _interactive_ programs under Windows *does not* work at the moment
-#  TODO:  How to handle stderr inline with stdout?
+#  TODO:  How to handle stderr inline with stdout? popen4?
+#  TODO:  Add some PS1 type flags for built in prompt.
+#  TODO:  Allow splitting options, ala explorer.vim
+#  TODO:  Buffer local keymaps are kind of flakey, not sure why
+#  TODO:  Break all of this text out into a readme.  :)
 #
 #  history:
 #
@@ -101,6 +111,23 @@
 #                      telnet, etc yet. 
 #                      Made clear check more explicit, cleartool was triggering it
 #                      Fixed the mysterious missing single char issue.
+#    12/13/01 - 0.9  - Set buftype=nofile <b.cerrina@wanadoo.fr>
+#                      Option to use current buffer if non-modified
+#                      Use vim variables for options so this file doesn't need
+#                      to be modified to allow customization.
+#                      Handle cancelling of input dialogs
+#                      Flag unsupported windows console commands
+#                      ( partial list see:unsupp_regex )
+#
+#                      NOTE:
+#
+#                       All attempts I've made to get interactive programs to
+#                       work under Windows have failed.  Without pty/expect like
+#                       functionality under Windows, interactive programs cannot
+#                       work using this script.  More specifically, programs
+#                       that do buffered I/O or read/write directly to the
+#                       console.  I'll try any ideas submitted to get it to work,
+#                       but for now I'm punting.
 #
 ###############################################################################
 
@@ -108,67 +135,127 @@ import vim, sys, os, string, signal, re
 
 _DEBUG_ = 0
 
-############################### CUSTOMIZE ######################################
+################################################################################
+##  If for some reason you'd rather use popenX on a unix variant or
+##  the platform doesn't suppport pty, add a check for your platform
+##  below also please shoot me an email if you're on a platform besides
+##  Windows doesn't support pty so I can add it to this list
+################################################################################
 
-##  If for some reason you'd rather use popen2 on a unix variant or the
-#  platform doesn't suppport pty, add a check for your platform below,
-##  or just comment out everything excet the import popen2 line, also
-##  please shoot me an email if you're on a platform besides Windows
-##  doesn't support pty so I can add it to this list
+try:
+    if sys.platform == 'win32':
+        import popen2, time, stat
+        use_pty   = 0
+
+    else:
+        import pty, tty, select
+        use_pty   = 1
+
+except ImportError:
+    print ( "vimsh: import error" )
+
+################################################################################
+
+def test_and_set( vim_var, default_val ):
+
+    ret = default_val
+
+    vim.command( 'let dummy = exists("' + vim_var + '")')
+    exists = vim.eval( "dummy" )
+
+    ##  exists will always be a string representation of the evaluation
+
+    if exists != '0':
+        ret = vim.eval( vim_var )
+
+    return ret
+
+############################# customization ###################################
 #
-if sys.platform == 'win32':
-    import popen2, time, stat
-    use_pty   = 0
-else:
-    import pty, tty, select
-    use_pty   = 1
+#  Don't edit the lines below, instead set the g:<variable> in your
+#  .vimrc to the value you would like to use.  For numeric settings
+#  *DO NOT* put quotes around them.  The quotes are only needed in
+#  this script.
+#
+#    i.e.   in .vimrc
+#
+#              let g:vimsh_prompt_override = 1
+#              let g:vimsh_prompt_pty      = "%m%#"
+#              let g:vimsh_split_open      = 0
+#              let g:vimsh_sh              = "/bin/zsh"
+#
+###############################################################################
 
 #  Non pty prompt, unused on Windows also.  May not be needed
 #
-prompt = "%> "
 
-##  Comment these out if you don't have an ansi prompt.
-##  may work with multi-line, haven't tried it, only
-##  used for pty enabled
+pipe_prompt = test_and_set( "g:vimsh_pipe_prompt", "%> " )
+
+#  Allow pty prompt override, useful if you have a ansi prompt
 #
+
+prompt_override = int( test_and_set( "g:vimsh_pty_prompt_override", "1" ) )
+
+##  Prompt override, used for pty enabled
+#
+
 if use_pty:
-    os.environ['PROMPT'] = r"\u@\h:\w\$ "         # sh, bash
-    os.environ['PS1']    = r"\u@\h:\w\$ "         
+
+    if prompt_override:
+        tmp = test_and_set( "g:vimsh_prompt_pty", r"\u@\h:\w\$ " )
+
+        os.environ['prompt'] = tmp
+        os.environ['PROMPT'] = tmp
+        os.environ['PS1']    = tmp
 
 ## shell program and supplemental arg to shell
 #
+
 if sys.platform == 'win32':
-    sh   = "cmd.exe"           # NT/Win2k
-    arg  = ""
+    sh  = test_and_set( "g:vimsh_sh",     "cmd.exe" )       # NT/Win2k
+    arg = test_and_set( "g:vimsh_sh_arg", "" )
 
 else:    
-    sh   = "/bin/sh"           # sym to /bin/bash on my machine
-    arg  = "-i"
+    sh  = test_and_set( "g:vimsh_sh",     "/bin/sh" )       # Unix
+    arg = test_and_set( "g:vimsh_sh_arg", "-i" )
 
 ## clear shell command behavior
 # 0 just scroll for empty screen
 # 1 delete contents of buffer
 #
-clear_all = 1
+
+clear_all  = test_and_set( "g:vimsh_clear_all", "0" )
                                 
-##  Change the <F2> to a different key sequence to taste
-##  prompts for the timeouts for read( s )
+## new vimsh window behavior
+# 0 use current buffer if not modified
+# 1 always split
+#
+
+split_open = test_and_set( "g:vimsh_split_open", "1" )
+
+##  Prompts for the timeouts for read( s )
 #
 #      set low for local usage, higher for network apps over slower link
 #      0.1 sec is the lowest setting
 #      over a slow link ( 28.8 ) 5+ seconds works well
 #
-vim.command( "inoremap <buffer> <F3> <esc>:python vim_shell.set_timeout( )<CR>" )
-vim.command( "nnoremap <buffer> <F3> <esc>:python vim_shell.set_timeout( )<CR>" )
-vim.command( "cnoremap <buffer> <F3> <esc>:python vim_shell.set_timeout( )<CR>" )
 
-##  Create a new prompt at the bottom of the buffer
+timeout_key = test_and_set( "g:vimsh_timeout_key", "<F3>" )
 
-vim.command( "inoremap <buffer> <F4>  <esc>:python vim_shell.new_prompt( )<CR>" )
-vim.command( "nnoremap <buffer> <F4>  <esc>:python vim_shell.new_prompt( )<CR>" )
-vim.command( "cnoremap <buffer> <F4>  <esc>:python vim_shell.new_prompt( )<CR>" )
+vim.command( 'inoremap <buffer> ' + timeout_key + ' <esc>:python vim_shell.set_timeout( )<CR>' )
+vim.command( 'nnoremap <buffer> ' + timeout_key + ' <esc>:python vim_shell.set_timeout( )<CR>' )
+vim.command( 'cnoremap <buffer> ' + timeout_key + ' <esc>:python vim_shell.set_timeout( )<CR>' )
+vim.command( 'cnoremap <buffer> ' + timeout_key + ' <esc>:python vim_shell.set_timeout( )<CR>' )
 
-############################# END CUSTOMIZE ####################################
+##  Create a new prompt at the bottom of the buffer, useful if stuck
+
+new_prompt_key = test_and_set( "g:vimsh_new_prompt_key", "<F4>" )
+
+vim.command( 'inoremap <buffer> ' + new_prompt_key + '  <esc>:python vim_shell.new_prompt( )<CR>' )
+vim.command( 'nnoremap <buffer> ' + new_prompt_key + '  <esc>:python vim_shell.new_prompt( )<CR>' )
+vim.command( 'cnoremap <buffer> ' + new_prompt_key + '  <esc>:python vim_shell.new_prompt( )<CR>' )
+
+############################ end customization #################################
 
 ################################################################################
 ##                             class vimsh                                    ##
@@ -183,8 +270,17 @@ class vimsh:
         self.pipe_prompt = _prompt
         self.prompt_line, self.prompt_cursor = self.get_vim_cursor_pos( )
 
-        self.password_regex = ["^Password:",            ##  su
-                               "Password required"]     ##  ftp
+        self.password_regex   = [ "^Password:",            ##  su
+                                  "Password required" ]    ##  ftp
+
+        ##  can't run interactive programs on the windows platform
+        ##  TODO:  Handle the .exe/.com extension here
+
+        self.unsupp_regex = [ r'^\bftp\b',           ##  ftp
+                              r'^\btelnet\b',        ##  telnet
+                              r'^\bcleartool\b',     ##  cleartool
+                              r'^\bssh\b',           ##  ssh
+                              r'^\bpython\b' ]       ##  python ( -u too ATM )
 
         self.last_cmd_executed = "foobar"
 
@@ -226,7 +322,7 @@ class vimsh:
                             ##  On windows no I/O exception just 0 bytes
                             ##  on the pipe, bug egg for apps that use
                             ##  'exit' but should return to shell. TODO:
-                            ##  Fix me when interactive programs work.
+                            ##  Fix me if/when interactive programs work.
 
                             if re.search( "^\s*exit\s*$", self.last_cmd_executed ):
                                 dbg_print( "      and last cmd was exit" )
@@ -250,7 +346,7 @@ class vimsh:
                         return -1
 
                     else:
-                        dbg_print ( "Unexpected error:" + sys.exc_info( )[0] )
+                        dbg_print ( "Unexpected error:" + str( sys.exc_info()[0] ) )
 
                 lines = self.process_read( lines )
 
@@ -366,6 +462,7 @@ class vimsh:
         vim.command( "normal G$" )
 
         ##  tuck away location all data read is in buffer
+
         self.prompt_line, self.prompt_cursor = self.get_vim_cursor_pos( )
 
 ################################################################################
@@ -388,7 +485,8 @@ class vimsh:
         ##  check for commands that should be handled differently first
 
         if re.search( "^\s*clear\s+", _cmd ):
-            print "matched clear"
+            dbg_print ( "matched clear" )
+
             self.write( "" + "\n" )    ##  new prompt
 
             if clear_all:
@@ -403,6 +501,29 @@ class vimsh:
                 vim.command( "normal zt" )
 
         else:
+
+            ##  first check for interactive commands under windows
+
+            if sys.platform == 'win32':
+
+                dbg_print( "execute_cmd: checking for unsupported windows cmds" )
+
+                for regex in self.unsupp_regex:
+                    m = re.search( regex, _cmd )
+
+                    if m:
+                        dbg_print( "execute_cmd: found a match" )
+
+                        vim.command( 'let continue = input( "The console version of ' + m.group(0) + ' is unsupported on Windows.  Continue anyway? y/n " )' )
+                        exe_it = vim.eval( "continue" )
+
+                        print ""            ## clears the ex command window
+
+                        if( string.upper( exe_it ) != 'Y' ):
+                            dbg_print( "execute_cmd: unsupported and not-executing" )
+                            return
+
+
             self.write( _cmd + "\n" )
             ret = self.end_exe_line( )
 
@@ -456,11 +577,12 @@ class vimsh:
             errors   = string.split( err_txt, '\n' )
 
             num_lines = len( errors )
-            dbg_print( "read: number of error lines is " + `num_lines` )
+            dbg_print( "chk_stderr: number of error lines is " + `num_lines` )
 
             last_line = errors[ num_lines - 1 ].strip( )
 
             if last_line == "":
+                dbg_print( "chk_stderr: removing last line, it's empty" )
                 errors = errors[ :-1 ]
 
         return errors
@@ -490,13 +612,18 @@ class vimsh:
 
                 os.execv( self.sh, [ self.sh, self.arg ] )
         else:
+
             ##  use pipes. not as reliable/nice. works OK but with limitations.
-            ##  needed for Windows support.
+            ##  Needed for Windows support.
 
             self.delay = 0.1
 
-            ##  TODO:  Need to get the PID of child proc, so I can kill it
-            self.stdout, self.stdin, self.stderr = popen2.popen3( self.sh + " " + self.arg )
+            self.stdout, self.stdin, self.stderr = popen2.popen3( self.sh + " " + self.arg, bufsize=-1  )
+
+            #  no better :(
+
+            #import win32pipe
+            #self.stdin, self.stdout, self.stderr = win32pipe.popen3( self.sh + " " + self.arg )
 
             self.outd = self.stdout.fileno( )
             self.ind  = self.stdin.fileno ( )
@@ -507,6 +634,7 @@ class vimsh:
     def check_for_passwd( self ):
 
         ##  check for password query in previous line
+
         cur_line, cur_row = self.get_vim_cursor_pos( )
 
         prev_line = cur[ cur_line - 1 ]
@@ -516,25 +644,44 @@ class vimsh:
 
         for regex in self.password_regex:
             if re.search( regex, prev_line ):
-                vim.command( 'let password = inputsecret( "Password? " )' )
-                password = vim.eval( "password" )
 
-                ##  recursive call here...
-                self.execute_cmd( password )
+                try:
+                    vim.command( 'let password = inputsecret( "Password? " )' )
+
+                except KeyboardInterrupt:
+                    return
+
+                    password = vim.eval( "password" )
+
+                    ##  recursive call here...
+                    self.execute_cmd( password )
 
 ################################################################################
 
     def set_timeout( self ):
+
         timeout_ok = 0
 
         while not timeout_ok:
-            vim.command( 'let timeout = input( "New timeout ( in seconds, i.e. 1.2 ) " )' )
-            timeout = float( vim.eval( "timeout" ) )
-            
-            if timeout >= 0.1:
-                print "      --->   New timeout is " + str( timeout ) + " seconds"
-                self.delay = timeout
+
+            try:
+                vim.command( 'let timeout = input( "New timeout ( in seconds, i.e. 1.2 ) " )' )
+
+            except KeyboardInterrupt:
+                return
+
+            timeout = vim.eval( "timeout" )
+
+            if timeout == "":               ##  usr cancelled dialog
                 timeout_ok = 1
+
+            else:
+                timeout = float( timeout )
+            
+                if timeout >= 0.1:
+                    print "      --->   New timeout is " + str( timeout ) + " seconds"
+                    self.delay = timeout
+                    timeout_ok = 1
 
 ################################################################################
 
@@ -544,7 +691,7 @@ class vimsh:
             self.execute_cmd( "" )        #  just press enter
 
         else:
-            cur[ cur_line - 1 ] = prompt
+            cur[ cur_line - 1 ] = self.pipe_prompt
 
         vim.command( "normal G$" )
         vim.command( "startinsert" )
@@ -604,7 +751,12 @@ try:
     ##  TODO:  Need to come up with a way to generate these buffers so
     ##         more than one can be opened
 
-    vim.command( "new vim_shell" )
+    if split_open:
+        vim.command( "new vim_shell" )
+    else:
+        vim.command( "edit vim_shell" )
+
+    vim.command( "setlocal buftype=nofile" )
     vim.command( "setlocal tabstop=8" )
     vim.command( "setlocal modifiable" )
     vim.command( "setlocal noswapfile" )
@@ -615,7 +767,7 @@ except:
 
 cur = vim.current.buffer
 
-vim_shell = vimsh( sh, arg, prompt )
+vim_shell = vimsh( sh, arg, pipe_prompt )
 vim_shell.setup_pty( use_pty )
 
 vim.command( "inoremap <buffer> <CR>  <esc>:python vim_shell.execute_cmd( )<CR>" )
@@ -625,11 +777,12 @@ vim_shell.read( cur )
 cur_line, cur_row = vim_shell.get_vim_cursor_pos( )
 
 if use_pty or sys.platform == 'win32':
+
     ##  last line *should* be prompt, tuck it away for syntax hilighting
     hi_prompt = cur[ cur_line - 1 ]
 
 else:
-    hi_prompt = prompt          ##  print non-pty prompt on platforms that don't
+    hi_prompt = vimsh_prompt          ##  print non-pty prompt on platforms that don't
     vim_shell.new_prompt()
 
 vim.command( "startinsert" )
