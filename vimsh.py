@@ -6,8 +6,8 @@
 # author:   brian m sturk   bsturk@adelphia.net,
 #                           http://users.adelphia.net/~bsturk
 # created:  12/02/01
-# last_mod: 09/30/02
-# version:  0.15
+# last_mod: 09/19/03
+# version:  0.16
 #
 # usage, etc:   see vimsh.readme
 # history:      see ChangeLog
@@ -374,7 +374,7 @@ class vimsh:
 
             dbg_print( 'print_lines: Current line is --> %s' %  line_iter )
 
-            m = re.search( '$', line_iter )
+            m = re.search( '\n$', line_iter )
 
             if m:
 

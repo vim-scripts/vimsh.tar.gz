@@ -207,3 +207,6 @@
                       * Changed the textwidth to a large number to support
                         long lines.  This is temporary until I support real
                         multiple line commands.
+    09/19/03 - 0.16 
+                      * Changed '^M' to '\n' for python 2.3.  Vimsh would not
+                      run w/ python 2.3. Backwards compatible change.
