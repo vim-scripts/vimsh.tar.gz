@@ -11,17 +11,12 @@
 
 * verify ctrl-d on solaris works
 
-* Ctrl-D/EOF not working on BSD for /bin/sh, verify still working on Linux (bash).
+* Ctrl-D/EOF not working on BSD for /bin/sh.
 
-* Fix handling of ctrl-d, needs to do a bdelete.  Put proper checking of
-  exiting flag after sigchld to avoid exceptions.
 
 * How to handle stderr inline with stdout? popen4?
 
 * Handle ( syntax hi ) ansi escape sequences ( colored prompts, LS_COLORS ).
-
-* How can I use regex to determine syntax but hide/remove
-  the escape codes?  Can be folding done within 1 line?
 
 * Add hooks for write/read so scripts can ride on top of this one.
   i.e. GDB run in terminal buffer, script hooks write read etc parses
@@ -32,5 +27,3 @@
 * tab completion
 
 * command history
-
-* fix handling of prompt

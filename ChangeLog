@@ -241,3 +241,17 @@
                       * Fix leading space in output when paging commands like
                         ping(8).
                       * Added some tips for [t]csh users to the readme.
+
+     3/26/04 - 0.20   
+                      * Leading space in output issue now works 100%, even when doing
+                        wacky stuff like 'sleep 10', then 'ls', without waiting for the
+                        prompt to return.
+                      * Typing 'exit' now works as expected when running ssh, telnet,
+                        etc.  This fix also doesn't need the procs_in_pty hack I had previously used.
+                      * exit'ing the initially spawned shell correctly deletes the buffer.
+                      * Fixed race conditions w/ SIGCHLD (async) setting flag and bdelete
+                        path not always seeing flag toggle.
+                      * Fixed bug where exiting vimsh buffer kept vim in insert mode.
+                      * Ctrl-D (EOF) now closes buffer only when sent to initial spawned shell.
+                      * Fixed bug on Windows (pipes) for multiple line command
+                        or leading space in command.

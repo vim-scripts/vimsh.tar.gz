@@ -74,9 +74,9 @@
     as vimsh.vim.  It should have been included in the .tar.gz or .zip file
     you downloaded as well as this file, a TODO file, and the ChangeLog.
 
-    Putting the scripts in your plugin directory is not recommended.
+    Putting the scripts in your plugin directory is *NOT* recommended.
 
-    You can also run have multiple buffers using vimsh:
+    You can also have multiple buffers using vimsh:
 
 	    :VimShNewBuf foo
 
@@ -162,8 +162,9 @@
     seeing all of the output or having to hit enter to see output you can
     bump the timeout up.  Being conservative won't hurt. See the mappings for
     setting the timeouts for reads and refreshing output.  If you don't want
-    to change the timeouts you can just press Enter or F5 to check for more
-    output from the command.
+    to change the timeouts you can just press <Enter> or <F5> (or whatever you
+    have mapped the page output key to) to check for more output from the 
+    command.
 
 :: vimsh tips ::
 
