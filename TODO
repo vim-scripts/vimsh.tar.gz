@@ -2,7 +2,7 @@
   a way to continue to get output in the background for commands that
   take a while to post stuff to stdout.  This would also fix the clean
   up after ctrl-c.  This issue is the the single biggest limitation
-  of this script.  Without multiple threads or some notification scheme
+  of this script.  Without multiple threads or some notification scheme,
   constant output can't be read and also allow for keyboard input.
   See vimsh.vim for an explanation of what I've tried so far and hasn't
   worked.
@@ -12,7 +12,6 @@
 * verify ctrl-d on solaris works
 
 * Ctrl-D/EOF not working on BSD for /bin/sh.
-
 
 * How to handle stderr inline with stdout? popen4?
 

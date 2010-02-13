@@ -1,8 +1,8 @@
-    ChangeLog
+    CHANGELOG
     =========
 
     This file contains a listing of modifications to vimsh.
-    Dates are included.  All changes by <bsturk@adelphia.net> unless
+    Dates are included.  All changes by <bsturk@comcast.net> unless
     noted.
 
     12/05/01 - 0.2a
@@ -255,3 +255,19 @@
                       * Ctrl-D (EOF) now closes buffer only when sent to initial spawned shell.
                       * Fixed bug on Windows (pipes) for multiple line command
                         or leading space in command.
+
+     02/08/10 - 0.21   
+                      * Added support for using $SHELL on UNIX platforms.  See readme for details.
+					    Suggested by 'cigy'.
+                      * Consistent use of ' -vs- " in vimsh.py
+                      * Moved all imports to the try/except block.  On Windows a registry error
+                        could cause the os module to not import.
+                      * Now conditionally set mappings etc based on vimsh python
+                        module importing correctly.
+				      * Windows pipes are now working again.  At some point os.fstat started
+					    returning 0 for pipes.  I've migrated win32 to use pywin32 (see README).
+				      * Newer versions of python seem to do auto-closing of the handles opened
+					    so no need to close them explicitly.
+				      * Changed all old adelphia contact info to my new contact info.
+					  * Only handle EOF (default ctrl-d) on non Windows platforms.
+					  * Fixed up handling of 'exit'.  There were some race conditions w/ waitpid.

@@ -11,7 +11,7 @@
 
         If you like this script and vim users are allowed to vote on new
         features in vim again, PLEASE put in a vote for vi editing in the ex
-        command window ( not the new command window/buffer ).  It's the only
+        command window (not the new command window/buffer).  It's the only
         new feature I would like vim to have.
     *********************************************************************
 
@@ -21,8 +21,14 @@
 
         python enabled vim ( +python )
         operating system that supports pty (unix) -or- popen/pipes (Windows)
-        python 2.2 or higher, may work with 2.0, but not tested.
-	    Tested w/ 2.2 and 2.3.
+	    Tested w/ Python 2.2 and 2.3, 2.4, and 2.5.
+
+        For Debian, the vim-python package is required to use vimsh.
+
+        For Windows, the pywin32 package is required for asynchronous pipes
+        support.
+
+            http://sourceforge.net/projects/pywin32/
 
     requirements in detail:
 
@@ -37,8 +43,10 @@
     I have tested vimsh on the following configurations, newer releases
     are not always tested with all platforms:
 
+        vim 7.x     / Windows Vista       / python 2.5
+        vim 7.x     / Ubuntu Linux        / python 2.5
+        vim 6.0-6.4 / Gentoo Linux        / python 2.3.3, 2.4.2
         vim 6.0-6.2 / Slackware Linux 8.0 / python 2.2b2, 2.2.3, 2.3.X
-        vim 6.0-6.2 / Gentoo Linux        / python 2.3.3
         vim 6.0-6.2 / WinNT 4.0           / Activestate Python 2.2
         vim 6.0-6.2 / Win2K               / Standard Python 2.2
         vim 6.0-6.2 / WinXP               / Standard Python 2.2
@@ -72,7 +80,7 @@
 
     There is a python script, vimsh.py, that needs to be in the same directory
     as vimsh.vim.  It should have been included in the .tar.gz or .zip file
-    you downloaded as well as this file, a TODO file, and the ChangeLog.
+    you downloaded as well as this file, a TODO file, and the CHANGELOG.
 
     Putting the scripts in your plugin directory is *NOT* recommended.
 
@@ -99,7 +107,8 @@
     general limitations:
 
         Can only execute line oriented programs, no vim within vim stuff,
-        emacs, [n]curses, pagers, etc.
+        or non text-only interactive programs emacs, [n]curses apps, pagers, 
+        etc.
 
     pty:
 
@@ -149,9 +158,17 @@
           let g:vimsh_split_open      = 0               ##  run vimsh in the current buffer
           let g:vimsh_sh              = "/bin/zsh"      ##  shell to run within vimsh
 
-    The list of variables was getting too long and that meant I had to duplicate
-    what was already in vimsh.py in this file, so please read vimsh.py for variables 
-    that can be customized.  Look for the section in the file labeled 'customization'.
+    The list of variables can be seen @ the bottom of vimsh.py.
+    Look for the section in the file labeled 'customization'.
+
+    Also note that by default on UNIX platforms, vimsh will use the
+    $SHELL environment variable. If that environment variable is
+    not set, /bin/sh is used. Setting vimsh_sh as shown above takes
+    precedence over $SHELL. i.e. setting $SHELL to /usr/bin/python will
+    launch python as your interpreter when starting a vimsh buffer.  Please
+    note that you *must* use the fully qualified name in $SHELL.  i.e.
+    /usr/bin/python not just python.  The easiest way to determine the fully
+    qualified path to the shell is to type "which <app_name>".
 
 :: vimsh notes ::
 
@@ -187,9 +204,9 @@
 
 :: vimsh help ::
 
-    Feel free to email me (bsturk@adelphia.net) with issues regarding    
+    Feel free to email me (bsturk@acomcast.net) with issues regarding    
     vimsh or if you've found a bug etc.  Please read this file, the          
-    ChangeLog, and the TODO to see if I already know about the issue, or    
+    CHANGELOG, and the TODO to see if I already know about the issue, or    
     is a known limitation before contacting me.  If you do email me please   
     include the output of :ver from vim, the version of python you have     
     installed, what operating system you are running, and the output
@@ -198,7 +215,7 @@
 :: vimsh info ::
 
     The latest version is always available @
-         http://users.adelphia.net/~bsturk/vim.html
+        http://home.comcast.net/~bsturk/vim.html
        
     Please send bug reports, suggestions, and other email to
-        bsturk@adelphia.net
+        bsturk@comcast.net
